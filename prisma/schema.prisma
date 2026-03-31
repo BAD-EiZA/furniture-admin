@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  SALES
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  CONFIRM_PAYMENT
+  REJECT_PAYMENT
+  EXPORT_ORDERS
+  DOWNLOAD_INVOICE
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  WAITING_CONFIRMATION
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  actorId     String?
+  actorName   String?
+  actorEmail  String?
+  actorRole   UserRole?
+  action      AuditAction
+  entityType  String
+  entityId    String?
+  description String?
+  beforeData  Json?
+  afterData   Json?
+  createdAt   DateTime    @default(now())
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedOrders Order[] @relation("SalesOrders")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  price       Decimal  @db.Decimal(12, 2)
+  stock       Int      @default(0)
+  qrCodeValue String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  medias     ProductMedia[]
+  orderItems OrderItem[]
+}
+
+model ProductMedia {
+  id        String    @id @default(cuid())
+  productId String
+  type      MediaType
+  fileUrl   String
+  fileKey   String?
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  createdAt DateTime @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  orderCode          String      @unique
+  customerId         String?
+  customerNameDraft  String
+  customerPhoneDraft String
+  salesId            String
+  status             OrderStatus @default(PENDING_PAYMENT)
+  subtotal           Decimal     @db.Decimal(12, 2)
+  total              Decimal     @db.Decimal(12, 2)
+  paymentNote        String?
+  confirmedAt        DateTime?
+  rejectedAt         DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  customer      Customer?                @relation(fields: [customerId], references: [id])
+  sales         User                     @relation("SalesOrders", fields: [salesId], references: [id])
+  items         OrderItem[]
+  paymentProof  PaymentProof?
+  invoice       Invoice?
+  confirmTokens EmailConfirmationToken[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(12, 2)
+  subtotal  Decimal @db.Decimal(12, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model PaymentProof {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  fileUrl   String
+  fileKey   String?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  invoiceNumber String   @unique
+  issuedAt      DateTime @default(now())
+  note          String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model EmailConfirmationToken {
+  id        String    @id @default(cuid())
+  orderId   String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
