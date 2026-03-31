@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/constants";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin")) {
-    const hasSession = !!request.cookies.get(SESSION_COOKIE)?.value;
+    const hasSession = !!request.cookies.get("furniture_session")?.value;
 
     if (!hasSession) {
       const loginUrl = new URL("/login", request.url);
