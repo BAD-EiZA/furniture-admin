@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateInvoiceNumber } from "@/lib/order";
 import { writeAuditLog } from "@/lib/audit";
+import { addOrderTimeline } from "@/lib/order-timeline";
 
 export async function GET(req: Request) {
   try {
@@ -108,6 +109,12 @@ export async function GET(req: Request) {
         orderCode: order.orderCode,
         status: "CONFIRMED",
       },
+    });
+
+    await addOrderTimeline({
+      orderId: order.id,
+      title: "Pembayaran dikonfirmasi",
+      description: `Order ${order.orderCode} berhasil dikonfirmasi`,
     });
 
     return NextResponse.redirect(

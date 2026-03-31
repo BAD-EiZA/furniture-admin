@@ -4,7 +4,7 @@ import { createOrderSchema } from "@/lib/checkout-schema";
 import { generateOrderCode } from "@/lib/order";
 import { nanoid } from "nanoid";
 import { sendOrderToSalesEmail } from "@/lib/email";
-
+import { addOrderTimeline } from "@/lib/order-timeline";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -98,6 +98,18 @@ export async function POST(req: Request) {
         },
         paymentProof: true,
       },
+    });
+
+    await addOrderTimeline({
+      orderId: order.id,
+      title: "Order dibuat",
+      description: `Order ${order.orderCode} dibuat oleh customer`,
+    });
+
+    await addOrderTimeline({
+      orderId: order.id,
+      title: "Bukti pembayaran diunggah",
+      description: "Customer telah mengunggah bukti pembayaran",
     });
 
     const token = await prisma.emailConfirmationToken.create({

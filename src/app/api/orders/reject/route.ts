@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
+import { addOrderTimeline } from "@/lib/order-timeline";
 
 export async function GET(req: Request) {
   try {
@@ -55,6 +56,12 @@ export async function GET(req: Request) {
         orderCode: token.order.orderCode,
         status: "REJECTED",
       },
+    });
+
+    await addOrderTimeline({
+      orderId: token.orderId,
+      title: "Pembayaran ditolak",
+      description: `Order ${token.order.orderCode} ditolak`,
     });
 
     return NextResponse.redirect(

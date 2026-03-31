@@ -53,6 +53,7 @@ export default function ProductMediaUploader({ value, onChange }: Props) {
         <p className="mb-2 text-sm font-medium">Upload Foto / Video Katalog</p>
 
         <UploadButton<OurFileRouter, "productMedia">
+        
           endpoint="productMedia"
           appearance={{
             button:
