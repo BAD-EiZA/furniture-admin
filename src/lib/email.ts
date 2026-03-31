@@ -1,5 +1,5 @@
 import { resend } from "@/lib/resend";
-
+import { transporter } from "@/lib/mailer";
 type SendOrderToSalesParams = {
   salesEmail: string;
   salesName: string;
@@ -29,12 +29,12 @@ export async function sendOrderToSalesEmail(params: SendOrderToSalesParams) {
     orderCode,
   } = params;
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
+  await transporter.sendMail({
+    from: `"Furniture App" <${process.env.SMTP_USER}>`,
     to: salesEmail,
     subject: `Konfirmasi pembayaran ${orderCode}`,
     html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
+   <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
         <h2>Konfirmasi Pembayaran Order</h2>
         <p>Halo ${salesName},</p>
         <p>Ada pembayaran baru yang menunggu konfirmasi.</p>
@@ -86,6 +86,7 @@ export async function sendOrderToSalesEmail(params: SendOrderToSalesParams) {
           </a>
         </div>
       </div>
-    `,
+  `,
   });
+
 }
