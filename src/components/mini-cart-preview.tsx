@@ -22,7 +22,7 @@ export default function MiniCartPreview() {
     );
 
     return (
-        <div className="w-[340px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div className="w-[340px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl z-50">
             <div className="border-b border-slate-100 px-4 py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

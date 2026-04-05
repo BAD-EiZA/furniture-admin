@@ -187,12 +187,6 @@ export default async function PublicProductPage({
                         product.medias.find((m) => m.type === "IMAGE")?.fileUrl || undefined,
                     }}
                   />
-                  <Link
-                    href="/catalog"
-                    className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Kembali ke Katalog
-                  </Link>
                 </div>
               </div>
             </div>
