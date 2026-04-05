@@ -77,7 +77,7 @@ export default async function HomePage() {
             </div>
           </nav>
 
-          <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] z-30">
             <div>
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm text-blue-700 shadow-sm backdrop-blur">
                 <Sparkles className="h-4 w-4" />

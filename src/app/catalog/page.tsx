@@ -68,7 +68,7 @@ export default async function CatalogPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 z-30">
         <form className="mb-8 overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/85 p-4 shadow-lg backdrop-blur">
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="relative flex-1">
