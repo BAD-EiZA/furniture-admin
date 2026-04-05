@@ -2,45 +2,98 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ProductMediaUploader, {
-  type UploadedMedia,
-} from "./product-media-uploader";
+import { UploadButton } from "@uploadthing/react";
+
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
+
+type MediaItem = {
+  fileUrl: string;
+  fileKey?: string;
+  type: "IMAGE" | "VIDEO";
+  sortOrder: number;
+};
+
+type TierPriceItem = {
+  minQty: number;
+  price: number;
+  label: string;
+};
 
 type ProductFormValues = {
   name: string;
   description: string;
-  price: string;
-  stock: string;
-  medias: UploadedMedia[];
+  price: number;
+  stock: number;
+  readyStock: number;
+  allowPreOrder: boolean;
+  medias: MediaItem[];
+  tierPrices: TierPriceItem[];
 };
 
 type Props = {
   mode: "create" | "edit";
   productId?: string;
-  initialValues?: ProductFormValues;
+  initialValues: ProductFormValues;
 };
 
-const emptyValues: ProductFormValues = {
-  name: "",
-  description: "",
-  price: "",
-  stock: "0",
-  medias: [],
-};
-
-export default function ProductForm({ mode, productId, initialValues }: Props) {
+export default function ProductForm({
+  mode,
+  productId,
+  initialValues,
+}: Props) {
   const router = useRouter();
-  const [values, setValues] = useState<ProductFormValues>(
-    initialValues ?? emptyValues,
-  );
+
+  const [values, setValues] = useState<ProductFormValues>(initialValues);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  function setField<K extends keyof ProductFormValues>(
+  function updateField<K extends keyof ProductFormValues>(
     key: K,
-    value: ProductFormValues[K],
+    value: ProductFormValues[K]
   ) {
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function addTier() {
+    setValues((prev) => ({
+      ...prev,
+      tierPrices: [
+        ...prev.tierPrices,
+        {
+          minQty: 1,
+          price: 0,
+          label: "",
+        },
+      ],
+    }));
+  }
+
+  function updateTier(
+    index: number,
+    key: keyof TierPriceItem,
+    value: string | number
+  ) {
+    setValues((prev) => ({
+      ...prev,
+      tierPrices: prev.tierPrices.map((tier, i) =>
+        i === index ? { ...tier, [key]: value } : tier
+      ),
+    }));
+  }
+
+  function removeTier(index: number) {
+    setValues((prev) => ({
+      ...prev,
+      tierPrices: prev.tierPrices.filter((_, i) => i !== index),
+    }));
+  }
+
+  function removeMedia(index: number) {
+    setValues((prev) => ({
+      ...prev,
+      medias: prev.medias.filter((_, i) => i !== index),
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -56,12 +109,21 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
 
       const method = mode === "create" ? "POST" : "PUT";
 
+      const payload = {
+        ...values,
+        tierPrices: values.tierPrices.map((tier) => ({
+          ...tier,
+          minQty: Number(tier.minQty),
+          price: Number(tier.price),
+        })),
+      };
+
       const res = await fetch(endpoint, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -73,7 +135,8 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
 
       router.push("/admin/products");
       router.refresh();
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Terjadi kesalahan saat menyimpan produk");
     } finally {
       setLoading(false);
@@ -81,87 +144,281 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm"
+    >
+      <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-medium">Nama Produk</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Nama Produk
+          </label>
           <input
             type="text"
             value={values.name}
-            onChange={(e) => setField("name", e.target.value)}
-            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
-            placeholder="Contoh: Sofa Minimalis Oslo"
+            onChange={(e) => updateField("name", e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            placeholder="Masukkan nama produk"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">Deskripsi</label>
-          <textarea
-            value={values.description}
-            onChange={(e) => setField("description", e.target.value)}
-            className="min-h-[140px] w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
-            placeholder="Tulis deskripsi produk"
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Harga Dasar
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={values.price}
+            onChange={(e) => updateField("price", Number(e.target.value || 0))}
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Deskripsi
+        </label>
+        <textarea
+          value={values.description}
+          onChange={(e) => updateField("description", e.target.value)}
+          className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          placeholder="Masukkan deskripsi produk"
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Total Stock
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={values.stock}
+            onChange={(e) => updateField("stock", Number(e.target.value || 0))}
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium">Harga</label>
-            <input
-              type="number"
-              min="0"
-              value={values.price}
-              onChange={(e) => setField("price", e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
-              placeholder="1500000"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">Stok</label>
-            <input
-              type="number"
-              min="0"
-              value={values.stock}
-              onChange={(e) => setField("stock", e.target.value)}
-              className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
-              placeholder="10"
-            />
-          </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Ready Stock
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={values.readyStock}
+            onChange={(e) =>
+              updateField("readyStock", Number(e.target.value || 0))
+            }
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          />
         </div>
 
-        <ProductMediaUploader
-          value={values.medias}
-          onChange={(media) => setField("medias", media)}
-        />
-
-        {error ? (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Pre-Order
+          </label>
+          <select
+            value={values.allowPreOrder ? "true" : "false"}
+            onChange={(e) =>
+              updateField("allowPreOrder", e.target.value === "true")
+            }
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
           >
-            {loading
-              ? "Menyimpan..."
-              : mode === "create"
-                ? "Simpan Produk"
-                : "Update Produk"}
-          </button>
+            <option value="true">Diizinkan</option>
+            <option value="false">Tidak diizinkan</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Media Produk
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <UploadButton<OurFileRouter, "productMedia">
+            endpoint="productMedia"
+            appearance={{
+              button:
+                "ut-ready:bg-blue-600 ut-uploading:bg-blue-400 rounded-xl px-4 py-2 text-sm font-medium",
+              container: "w-full",
+              allowedContent: "text-xs text-slate-500 mt-2",
+            }}
+            onUploadBegin={() => setUploading(true)}
+            onClientUploadComplete={(res) => {
+              setUploading(false);
+
+              const next = res.map((file, index) => ({
+                fileUrl: file.url,
+                fileKey: file.key,
+                type: file.type.startsWith("video") ? "VIDEO" : "IMAGE",
+                sortOrder: values.medias.length + index,
+              })) as MediaItem[];
+
+              setValues((prev) => ({
+                ...prev,
+                medias: [...prev.medias, ...next],
+              }));
+            }}
+            onUploadError={(uploadError: Error) => {
+              setUploading(false);
+              setError(uploadError.message);
+            }}
+          />
+
+          {uploading ? (
+            <p className="mt-3 text-sm text-blue-600">Sedang upload media...</p>
+          ) : null}
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {values.medias.map((media, index) => (
+            <div
+              key={`${media.fileUrl}-${index}`}
+              className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white"
+            >
+              <div className="aspect-[4/3] bg-slate-100">
+                {media.type === "IMAGE" ? (
+                  <img
+                    src={media.fileUrl}
+                    alt="media"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={media.fileUrl}
+                    controls
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2 p-3">
+                <p className="text-xs text-slate-500">{media.type}</p>
+                <button
+                  type="button"
+                  onClick={() => removeMedia(index)}
+                  className="w-full rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
+                >
+                  Hapus Media
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Tier Pricing
+          </h3>
 
           <button
             type="button"
-            onClick={() => router.push("/admin/products")}
-            className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            onClick={addTier}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            Batal
+            + Tambah Tier
           </button>
         </div>
+
+        <div className="space-y-4">
+          {values.tierPrices.map((tier, index) => (
+            <div
+              key={index}
+              className="grid gap-4 rounded-2xl border border-slate-200/70 bg-slate-50 p-4 lg:grid-cols-[120px_1fr_140px_100px]"
+            >
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-500">
+                  Min Qty
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={tier.minQty}
+                  onChange={(e) =>
+                    updateTier(index, "minQty", Number(e.target.value || 1))
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-500">
+                  Label
+                </label>
+                <input
+                  type="text"
+                  value={tier.label}
+                  onChange={(e) => updateTier(index, "label", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                  placeholder="Retail / Bulk / 1 Bal"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-500">
+                  Harga
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={tier.price}
+                  onChange={(e) =>
+                    updateTier(index, "price", Number(e.target.value || 0))
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => removeTier(index)}
+                  disabled={values.tierPrices.length <= 1}
+                  className="w-full rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="submit"
+          disabled={loading || uploading}
+          className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+        >
+          {loading
+            ? "Menyimpan..."
+            : mode === "create"
+              ? "Simpan Produk"
+              : "Update Produk"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/products")}
+          className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Batal
+        </button>
       </div>
     </form>
   );

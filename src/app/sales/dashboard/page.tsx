@@ -10,7 +10,7 @@ export default async function SalesDashboardPage() {
     redirect("/login");
   }
 
-  const [totalOrders, waitingOrders, confirmedOrders, recentOrders] =
+  const [totalOrders, waitingOrders, confirmedOrders, invoiceSentOrders, recentOrders] =
     await Promise.all([
       prisma.order.count({
         where: { salesId: session.userId },
@@ -25,6 +25,12 @@ export default async function SalesDashboardPage() {
         where: {
           salesId: session.userId,
           status: "CONFIRMED",
+        },
+      }),
+      prisma.order.count({
+        where: {
+          salesId: session.userId,
+          status: "INVOICE_SENT",
         },
       }),
       prisma.order.findMany({
@@ -47,6 +53,7 @@ export default async function SalesDashboardPage() {
     { title: "Total Order", value: totalOrders },
     { title: "Menunggu Konfirmasi", value: waitingOrders },
     { title: "Sudah Confirmed", value: confirmedOrders },
+    { title: "Invoice Sent", value: invoiceSentOrders },
   ];
 
   return (
@@ -58,7 +65,7 @@ export default async function SalesDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <div
             key={card.title}
@@ -109,7 +116,7 @@ export default async function SalesDashboardPage() {
                     </td>
                     <td className="px-4 py-3">{order.status}</td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/status/${order.orderCode}`}
                           className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
@@ -125,6 +132,15 @@ export default async function SalesDashboardPage() {
                           >
                             Bukti Bayar
                           </a>
+                        ) : null}
+
+                        {order.invoice && order.status === "CONFIRMED" ? (
+                          <form action="/api/orders/invoice-sent" method="POST">
+                            <input type="hidden" name="orderId" value={order.id} />
+                            <button className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700">
+                              Invoice Sent
+                            </button>
+                          </form>
                         ) : null}
                       </div>
                     </td>

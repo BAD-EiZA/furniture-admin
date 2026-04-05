@@ -5,6 +5,8 @@ import { slugify } from "@/lib/product";
 import { getSession } from "@/lib/auth";
 import { utapi } from "@/lib/uploadthing";
 import { writeAuditLog } from "@/lib/audit";
+import { updateProductSchema } from "@/lib/product-schema";
+import { createStockHistory } from "@/lib/stock-history";
 const mediaSchema = z.object({
   fileUrl: z.string().url(),
   fileKey: z.string().optional(),
@@ -12,13 +14,6 @@ const mediaSchema = z.object({
   sortOrder: z.number().int().positive(),
 });
 
-const updateProductSchema = z.object({
-  name: z.string().min(2),
-  description: z.string().min(3),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0),
-  medias: z.array(mediaSchema).default([]),
-});
 
 export async function GET(
   _req: Request,
@@ -61,7 +56,7 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -76,8 +71,11 @@ export async function PUT(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Data produk tidak valid", errors: parsed.error.flatten() },
-        { status: 400 },
+        {
+          message: "Data produk tidak valid",
+          errors: parsed.error.flatten(),
+        },
+        { status: 400 }
       );
     }
 
@@ -85,17 +83,36 @@ export async function PUT(
       where: { id },
       include: {
         medias: true,
+        tierPrices: true,
       },
     });
 
     if (!existing) {
       return NextResponse.json(
         { message: "Produk tidak ditemukan" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    let slug = slugify(parsed.data.name);
+    const {
+      name,
+      description,
+      price,
+      stock,
+      readyStock,
+      allowPreOrder,
+      medias,
+      tierPrices,
+    } = parsed.data;
+
+    if (readyStock > stock) {
+      return NextResponse.json(
+        { message: "Ready stock tidak boleh lebih besar dari total stock" },
+        { status: 400 }
+      );
+    }
+
+    let slug = slugify(name);
 
     const sameSlugUsed = await prisma.product.findFirst({
       where: {
@@ -112,37 +129,69 @@ export async function PUT(
       .map((item) => item.fileKey)
       .filter((key): key is string => Boolean(key));
 
-    const nextFileKeys = parsed.data.medias
+    const nextFileKeys = medias
       .map((item) => item.fileKey)
       .filter((key): key is string => Boolean(key));
 
     const removedFileKeys = oldFileKeys.filter(
-      (key) => !nextFileKeys.includes(key),
+      (key) => !nextFileKeys.includes(key)
     );
 
     const updated = await prisma.product.update({
       where: { id },
       data: {
-        name: parsed.data.name,
+        name,
         slug,
-        description: parsed.data.description,
-        price: parsed.data.price,
-        stock: parsed.data.stock,
+        description,
+        price,
+        stock,
+        readyStock,
+        allowPreOrder,
         medias: {
           deleteMany: {},
-          create: parsed.data.medias,
+          create: medias,
+        },
+        tierPrices: {
+          deleteMany: {},
+          create: tierPrices
+            .sort((a, b) => a.minQty - b.minQty)
+            .map((tier) => ({
+              minQty: tier.minQty,
+              price: tier.price,
+              label: tier.label || null,
+            })),
         },
       },
       include: {
         medias: {
           orderBy: { sortOrder: "asc" },
         },
+        tierPrices: {
+          orderBy: { minQty: "asc" },
+        },
       },
     });
+
+    if (
+      existing.stock !== updated.stock ||
+      existing.readyStock !== updated.readyStock
+    ) {
+      await createStockHistory({
+        productId: updated.id,
+        type: "MANUAL_UPDATE",
+        stockBefore: existing.stock,
+        stockAfter: updated.stock,
+        readyBefore: existing.readyStock,
+        readyAfter: updated.readyStock,
+        changeAmount: updated.readyStock - existing.readyStock,
+        note: `Update manual oleh admin untuk produk ${updated.name}`,
+      });
+    }
 
     if (removedFileKeys.length > 0) {
       await utapi.deleteFiles(removedFileKeys);
     }
+
     await writeAuditLog({
       action: "UPDATE",
       entityType: "PRODUCT",
@@ -155,9 +204,10 @@ export async function PUT(
     return NextResponse.json(updated);
   } catch (error) {
     console.error("UPDATE_PRODUCT_ERROR", error);
+
     return NextResponse.json(
       { message: "Gagal mengupdate produk" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { slugify, generateProductQrValue } from "@/lib/product";
 import { getSession } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
+import { createProductSchema } from "@/lib/product-schema";
+import { createStockHistory } from "@/lib/stock-history";
 const mediaSchema = z.object({
   fileUrl: z.string().url(),
   fileKey: z.string().optional(),
@@ -11,13 +13,7 @@ const mediaSchema = z.object({
   sortOrder: z.number().int().positive(),
 });
 
-const createProductSchema = z.object({
-  name: z.string().min(2),
-  description: z.string().min(3),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0),
-  medias: z.array(mediaSchema).default([]),
-});
+
 
 export async function GET() {
   try {
@@ -46,6 +42,12 @@ export async function GET() {
   }
 }
 
+
+function generateQrCodeValue(name: string) {
+  const base = slugify(name).toUpperCase().replace(/-/g, "");
+  return `PRD-${base}-${Date.now()}`;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getSession();
@@ -59,16 +61,35 @@ export async function POST(req: Request) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Data produk tidak valid", errors: parsed.error.flatten() },
-        { status: 400 },
+        {
+          message: "Data produk tidak valid",
+          errors: parsed.error.flatten(),
+        },
+        { status: 400 }
       );
     }
 
-    const { name, description, price, stock, medias } = parsed.data;
+    const {
+      name,
+      description,
+      price,
+      stock,
+      readyStock,
+      allowPreOrder,
+      medias,
+      tierPrices,
+    } = parsed.data;
+
+    if (readyStock > stock) {
+      return NextResponse.json(
+        { message: "Ready stock tidak boleh lebih besar dari total stock" },
+        { status: 400 }
+      );
+    }
 
     let slug = slugify(name);
 
-    const existingSlug = await prisma.product.findUnique({
+    const existingSlug = await prisma.product.findFirst({
       where: { slug },
     });
 
@@ -83,17 +104,32 @@ export async function POST(req: Request) {
         description,
         price,
         stock,
-        qrCodeValue: generateProductQrValue(),
+        readyStock,
+        allowPreOrder,
+        qrCodeValue: generateQrCodeValue(name),
         medias: {
           create: medias,
+        },
+        tierPrices: {
+          create: tierPrices
+            .sort((a, b) => a.minQty - b.minQty)
+            .map((tier) => ({
+              minQty: tier.minQty,
+              price: tier.price,
+              label: tier.label || null,
+            })),
         },
       },
       include: {
         medias: {
           orderBy: { sortOrder: "asc" },
         },
+        tierPrices: {
+          orderBy: { minQty: "asc" },
+        },
       },
     });
+
     await writeAuditLog({
       action: "CREATE",
       entityType: "PRODUCT",
@@ -102,12 +138,24 @@ export async function POST(req: Request) {
       afterData: product,
     });
 
+    await createStockHistory({
+      productId: product.id,
+      type: "PRODUCT_CREATE",
+      stockBefore: 0,
+      stockAfter: product.stock,
+      readyBefore: 0,
+      readyAfter: product.readyStock,
+      changeAmount: product.readyStock,
+      note: `Produk ${product.name} dibuat`,
+    });
+
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("CREATE_PRODUCT_ERROR", error);
+
     return NextResponse.json(
       { message: "Gagal membuat produk" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -10,7 +10,25 @@ export default function NewProductPage() {
         </p>
       </div>
 
-      <ProductForm mode="create" />
+      <ProductForm
+        mode="create"
+        initialValues={{
+          name: "",
+          description: "",
+          price: 0,
+          stock: 0,
+          readyStock: 0,
+          allowPreOrder: true,
+          medias: [],
+          tierPrices: [
+            {
+              minQty: 1,
+              price: 0,
+              label: "Retail",
+            },
+          ],
+        }}
+      />
     </div>
   );
 }

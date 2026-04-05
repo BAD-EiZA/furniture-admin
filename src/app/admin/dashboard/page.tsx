@@ -18,33 +18,74 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import AdminDashboardCharts from "@/components/admin-dashboard-charts";
 
 export default async function AdminDashboardPage() {
-  const [productCount, adminCount, salesCount, orderCount, recentOrders] =
-    await Promise.all([
-      prisma.product.count(),
-      prisma.user.count({
-        where: {
-          role: {
-            in: ["SUPER_ADMIN", "ADMIN"],
-          },
+  const [
+    productCount,
+    adminCount,
+    salesCount,
+    orderCount,
+    recentOrders,
+    confirmedRevenue,
+    confirmedOrders,
+    rejectedOrders,
+    waitingOrders,
+    pendingOrders,
+    paymentMethodRaw,
+  ] = await Promise.all([
+    prisma.product.count(),
+    prisma.user.count({
+      where: {
+        role: {
+          in: ["SUPER_ADMIN", "ADMIN"],
         },
-      }),
-      prisma.user.count({
-        where: { role: "SALES" },
-      }),
-      prisma.order.count(),
-      prisma.order.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: {
-          sales: true,
-          items: {
-            include: { product: true },
-          },
+      },
+    }),
+    prisma.user.count({
+      where: { role: "SALES" },
+    }),
+    prisma.order.count(),
+    prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: {
+        sales: true,
+        items: {
+          include: { product: true },
         },
-      }),
-    ]);
+      },
+    }),
+    prisma.order.aggregate({
+      _sum: {
+        total: true,
+      },
+      where: {
+        status: "CONFIRMED",
+      },
+    }),
+    prisma.order.count({
+      where: { status: "CONFIRMED" },
+    }),
+    prisma.order.count({
+      where: { status: "REJECTED" },
+    }),
+    prisma.order.count({
+      where: { status: "WAITING_CONFIRMATION" },
+    }),
+    prisma.order.count({
+      where: { status: "PENDING_PAYMENT" },
+    }),
+    prisma.order.groupBy({
+      by: ["paymentMethod"],
+      _count: {
+        id: true,
+      },
+      _sum: {
+        total: true,
+      },
+    }),
+  ]);
 
   const statCards = [
     {
@@ -73,6 +114,37 @@ export default async function AdminDashboardPage() {
     },
   ];
 
+  const revenueData = paymentMethodRaw.map((item) => ({
+    name:
+      item.paymentMethod === "TRANSFER"
+        ? "Transfer"
+        : item.paymentMethod === "COD"
+          ? "COD"
+          : item.paymentMethod === "TEMPO"
+            ? "Tempo"
+            : item.paymentMethod,
+    total: Number(item._sum.total || 0),
+  }));
+
+  const paymentMethodData = paymentMethodRaw.map((item) => ({
+    name:
+      item.paymentMethod === "TRANSFER"
+        ? "Transfer"
+        : item.paymentMethod === "COD"
+          ? "COD"
+          : item.paymentMethod === "TEMPO"
+            ? "Tempo"
+            : item.paymentMethod,
+    value: item._count.id,
+  }));
+
+  const statusData = [
+    { name: "Confirmed", value: confirmedOrders },
+    { name: "Rejected", value: rejectedOrders },
+    { name: "Waiting", value: waitingOrders },
+    { name: "Pending", value: pendingOrders },
+  ];
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[28px] border border-white/60 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-6 text-white shadow-2xl lg:p-8">
@@ -83,11 +155,11 @@ export default async function AdminDashboardPage() {
           <div className="max-w-2xl">
             <Badge className="mb-4 rounded-full bg-white/10 px-3 py-1 text-white hover:bg-white/10">
               <Sparkles className="mr-1 h-3.5 w-3.5" />
-             Admin Dashboard
+              Admin Dashboard
             </Badge>
 
             <h1 className="text-3xl font-bold tracking-tight lg:text-4xl">
-              Kelola produk, transaksi, dan tim 
+              Kelola produk, transaksi, dan tim
             </h1>
           </div>
 
@@ -140,6 +212,14 @@ export default async function AdminDashboardPage() {
             </Card>
           );
         })}
+      </section>
+
+      <section>
+        <AdminDashboardCharts
+          revenueData={revenueData}
+          statusData={statusData}
+          paymentMethodData={paymentMethodData}
+        />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">

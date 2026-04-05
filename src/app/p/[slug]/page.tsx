@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Package, ShieldCheck, ShoppingBag } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import AddToCartButton from "@/components/add-to-cart-button";
+import CartBadge from "@/components/cart-badge";
 
 export default async function PublicProductPage({
   params,
@@ -42,16 +44,20 @@ export default async function PublicProductPage({
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_28%),linear-gradient(to_bottom,_#f8fafc,_#ffffff)]">
       <section className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <Link href="/" className="hover:text-slate-900">
-              Beranda
-            </Link>
-            <span>/</span>
-            <Link href="/catalog" className="hover:text-slate-900">
-              Katalog
-            </Link>
-            <span>/</span>
-            <span className="text-slate-900">{product.name}</span>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <Link href="/" className="hover:text-slate-900">
+                Beranda
+              </Link>
+              <span>/</span>
+              <Link href="/catalog" className="hover:text-slate-900">
+                Katalog
+              </Link>
+              <span>/</span>
+              <span className="text-slate-900">{product.name}</span>
+            </div>
+
+            <CartBadge />
           </div>
         </div>
       </section>
@@ -171,13 +177,16 @@ export default async function PublicProductPage({
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Link
-                    href={`/checkout/${product.slug}`}
-                    className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700"
-                  >
-                    Beli Sekarang
-                  </Link>
-
+                  <AddToCartButton
+                    product={{
+                      id: product.id,
+                      slug: product.slug,
+                      name: product.name,
+                      price: Number(product.price),
+                      image:
+                        product.medias.find((m) => m.type === "IMAGE")?.fileUrl || undefined,
+                    }}
+                  />
                   <Link
                     href="/catalog"
                     className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"

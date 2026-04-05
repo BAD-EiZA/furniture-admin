@@ -22,6 +22,11 @@ enum MediaType {
   IMAGE
   VIDEO
 }
+enum StockHistoryType {
+  MANUAL_UPDATE
+  ORDER_CONFIRMATION
+  PRODUCT_CREATE
+}
 
 enum AuditAction {
   CREATE
@@ -42,6 +47,77 @@ enum OrderStatus {
   INVOICE_SENT
 }
 
+enum PaymentMethod {
+  TRANSFER
+  COD
+  TEMPO
+}
+
+enum AdjustmentType {
+  DISCOUNT
+  SURCHARGE
+  NONE
+}
+
+model Order {
+  id                  String          @id @default(cuid())
+  orderCode           String          @unique
+  customerId          String?
+  customerNameDraft   String
+  customerPhoneDraft  String
+  customerAddressDraft String       @default("Tangerang")
+  salesId             String
+  status              OrderStatus     @default(PENDING_PAYMENT)
+
+  paymentMethod       PaymentMethod   @default(TRANSFER)
+  adjustmentType      AdjustmentType  @default(NONE)
+  adjustmentValue     Decimal         @default(0) @db.Decimal(12, 2)
+
+  subtotal            Decimal         @db.Decimal(12, 2)
+  total               Decimal         @db.Decimal(12, 2)
+
+  paymentNote         String?
+  internalNote        String?
+  confirmedAt         DateTime?
+  rejectedAt          DateTime?
+  invoiceSentAt       DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  customer            Customer?       @relation(fields: [customerId], references: [id])
+  sales               User            @relation("SalesOrders", fields: [salesId], references: [id])
+  items               OrderItem[]
+  paymentProof        PaymentProof?
+  invoice             Invoice?
+  confirmTokens       EmailConfirmationToken[]
+  timelines           OrderTimeline[]
+}
+
+model StockHistory {
+  id            String           @id @default(cuid())
+  productId     String
+  type          StockHistoryType
+
+  stockBefore   Int
+  stockAfter    Int
+
+  readyBefore   Int
+  readyAfter    Int
+
+  changeAmount  Int
+  note          String?
+
+  actorId       String?
+  actorName     String?
+  actorRole     UserRole?
+
+  orderId       String?
+  createdAt     DateTime         @default(now())
+
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+}
 
 model AuditLog {
   id          String      @id @default(cuid())
@@ -73,19 +149,38 @@ model User {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String
-  price       Decimal  @db.Decimal(12, 2)
-  stock       Int      @default(0)
-  qrCodeValue String   @unique
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String             @id @default(cuid())
+  name           String
+  slug           String             @unique
+  description    String
+  price          Decimal            @db.Decimal(12, 2)
 
-  medias     ProductMedia[]
-  orderItems OrderItem[]
+  stock          Int                @default(0)
+  readyStock     Int                @default(0)
+  allowPreOrder  Boolean            @default(true)
+
+  qrCodeValue    String             @unique
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  medias         ProductMedia[]
+  orderItems     OrderItem[]
+  tierPrices     ProductTierPrice[]
+  stockHistories StockHistory[]
+}
+
+model ProductTierPrice {
+  id        String   @id @default(cuid())
+  productId String
+  minQty    Int
+  price     Decimal  @db.Decimal(12, 2)
+  label     String?
+  createdAt DateTime @default(now())
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, minQty])
 }
 
 model ProductMedia {
@@ -109,33 +204,6 @@ model Customer {
   orders Order[]
 }
 
-model Order {
-  id                  String        @id @default(cuid())
-  orderCode           String        @unique
-  customerId          String?
-  customerNameDraft   String
-  customerPhoneDraft  String
-  salesId             String
-  status              OrderStatus   @default(PENDING_PAYMENT)
-  subtotal            Decimal       @db.Decimal(12, 2)
-  total               Decimal       @db.Decimal(12, 2)
-  paymentNote         String?
-  internalNote        String?
-  confirmedAt         DateTime?
-  rejectedAt          DateTime?
-  invoiceSentAt       DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-
-  customer            Customer?     @relation(fields: [customerId], references: [id])
-  sales               User          @relation("SalesOrders", fields: [salesId], references: [id])
-  items               OrderItem[]
-  paymentProof        PaymentProof?
-  invoice             Invoice?
-  confirmTokens       EmailConfirmationToken[]
-  timelines           OrderTimeline[]
-}
-
 model OrderTimeline {
   id          String    @id @default(cuid())
   orderId      String
@@ -147,15 +215,20 @@ model OrderTimeline {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Decimal @db.Decimal(12, 2)
-  subtotal  Decimal @db.Decimal(12, 2)
+  id             String    @id @default(cuid())
+  orderId        String
+  productId      String
+  quantity       Int
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  unitPrice      Decimal   @db.Decimal(12, 2) @default(20000)
+  subtotal       Decimal   @db.Decimal(12, 2)
+
+  readyQty       Int       @default(0)
+  poQty          Int       @default(0)
+  priceTierLabel String?
+
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product   @relation(fields: [productId], references: [id])
 }
 
 model PaymentProof {

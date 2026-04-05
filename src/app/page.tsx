@@ -10,6 +10,7 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import CartBadge from "@/components/cart-badge";
 
 export default async function HomePage() {
   const featuredProducts = await prisma.product.findMany({
@@ -64,6 +65,9 @@ export default async function HomePage() {
               >
                 Catalog
               </Link>
+
+              <CartBadge />
+
               <Link
                 href="/login"
                 className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"

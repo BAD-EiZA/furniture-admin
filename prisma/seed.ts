@@ -118,8 +118,33 @@ async function main() {
         description: `Deskripsi ${name}. Cocok untuk rumah, kantor, dan showroom.`,
         price: (1200000 + i * 150000).toString(),
         stock: 10 + (i % 20),
+        readyStock: 10 + (i % 20),
+        allowPreOrder: true,
         qrCodeValue: `PRD-${nanoid(10)}`,
       },
+    });
+
+    await prisma.productTierPrice.createMany({
+      data: [
+        {
+          productId: product.id,
+          minQty: 1,
+          price: (1200000 + i * 150000).toString(),
+          label: "Retail",
+        },
+        {
+          productId: product.id,
+          minQty: 6,
+          price: (1150000 + i * 145000).toString(),
+          label: "Half Bulk",
+        },
+        {
+          productId: product.id,
+          minQty: 12,
+          price: (1100000 + i * 140000).toString(),
+          label: "Bulk",
+        },
+      ],
     });
 
     await prisma.productMedia.createMany({

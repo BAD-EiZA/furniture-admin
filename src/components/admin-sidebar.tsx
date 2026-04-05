@@ -10,6 +10,7 @@ import {
   FileClock,
   BarChart3,
   ContactRound,
+  Boxes,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,11 @@ const navItems = [
     label: "Produk",
     href: "/admin/products",
     icon: Package,
+  },
+  {
+    label: "Stock History",
+    href: "/admin/stock-history",
+    icon: Boxes,
   },
   {
     label: "Order",

@@ -15,6 +15,9 @@ export default async function EditProductPage({
       medias: {
         orderBy: { sortOrder: "asc" },
       },
+      tierPrices: {
+        orderBy: { minQty: "asc" },
+      },
     },
   });
 
@@ -37,13 +40,20 @@ export default async function EditProductPage({
         initialValues={{
           name: product.name,
           description: product.description,
-          price: String(product.price),
-          stock: String(product.stock),
-          medias: product.medias.map((item) => ({
-            fileUrl: item.fileUrl,
-            fileKey: item.fileKey ?? undefined,
-            type: item.type,
-            sortOrder: item.sortOrder,
+          price: Number(product.price),
+          stock: product.stock,
+          readyStock: product.readyStock,
+          allowPreOrder: product.allowPreOrder,
+          medias: product.medias.map((media) => ({
+            fileUrl: media.fileUrl,
+            fileKey: media.fileKey || "",
+            type: media.type,
+            sortOrder: media.sortOrder,
+          })),
+          tierPrices: product.tierPrices.map((tier) => ({
+            minQty: tier.minQty,
+            price: Number(tier.price),
+            label: tier.label || "",
           })),
         }}
       />

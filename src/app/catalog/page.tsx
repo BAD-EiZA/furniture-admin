@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import CartBadge from "@/components/cart-badge";
 
 export default async function CatalogPage({
   searchParams,
@@ -14,11 +15,11 @@ export default async function CatalogPage({
     isActive: true,
     ...(q
       ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" as const } },
-            { description: { contains: q, mode: "insensitive" as const } },
-          ],
-        }
+        OR: [
+          { name: { contains: q, mode: "insensitive" as const } },
+          { description: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
       : {}),
   };
 
@@ -53,12 +54,16 @@ export default async function CatalogPage({
               </p>
             </div>
 
-            <Link
-              href="/"
-              className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              Kembali ke Beranda
-            </Link>
+            <div className="flex items-center gap-3">
+              <CartBadge />
+
+              <Link
+                href="/"
+                className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Kembali ke Beranda
+              </Link>
+            </div>
           </div>
         </div>
       </section>
