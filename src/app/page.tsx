@@ -58,7 +58,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 z-50">
               <Link
                 href="/catalog"
                 className="rounded-full px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
