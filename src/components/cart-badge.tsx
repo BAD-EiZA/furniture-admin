@@ -11,7 +11,7 @@ export default function CartBadge() {
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="relative">
+        <div className="relative z-50">
             <button
                 type="button"
                 onClick={() => setOpen((prev) => !prev)}
@@ -29,10 +29,10 @@ export default function CartBadge() {
             {open ? (
                 <>
                     <div
-                        className="fixed inset-0 z-50"
+                        className="fixed inset-0 z-30"
                         onClick={() => setOpen(false)}
                     />
-                    <div className="absolute right-0 top-14 z-50">
+                    <div className="absolute right-0 top-14 z-40">
                         <MiniCartPreview />
                     </div>
                 </>
