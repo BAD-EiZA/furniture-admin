@@ -36,7 +36,7 @@ export default async function CatalogPage({
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_30%),linear-gradient(to_bottom,_#f8fafc,_#ffffff)]">
-      <section className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
+      <section className="relative z-50 border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>

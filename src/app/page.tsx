@@ -45,7 +45,7 @@ export default async function HomePage() {
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8 lg:pb-28 lg:pt-16">
-          <nav className="mb-10 flex items-center justify-between rounded-full border border-white/60 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-xl">
+          <nav className="relative z-50 mb-10 flex items-center justify-between rounded-full border border-white/60 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-sm font-bold text-white">
                 FA
