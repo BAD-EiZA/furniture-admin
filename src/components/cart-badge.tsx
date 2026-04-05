@@ -29,10 +29,10 @@ export default function CartBadge() {
             {open ? (
                 <>
                     <div
-                        className="fixed inset-0 z-30"
+                        className="fixed inset-0 z-50"
                         onClick={() => setOpen(false)}
                     />
-                    <div className="absolute right-0 top-14 z-40">
+                    <div className="absolute right-0 top-14 z-50">
                         <MiniCartPreview />
                     </div>
                 </>
