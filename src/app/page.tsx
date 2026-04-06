@@ -37,7 +37,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.14),_transparent_30%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)] text-slate-900">
-      <section className="relative overflow-hidden">
+      <section className="relative z-50 overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-[#125EA9]/20 blur-3xl" />
           <div className="absolute right-10 top-24 h-60 w-60 rounded-full bg-[#C89B3C]/12 blur-3xl" />
