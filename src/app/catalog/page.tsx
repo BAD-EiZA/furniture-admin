@@ -3,6 +3,7 @@ import { Search, Sparkles } from "lucide-react";
 
 import CartBadge from "@/components/cart-badge";
 import { getCatalogProducts } from "@/lib/catalog-cache";
+import QuickAddToCartButton from "@/components/quick-add-to-cart-button";
 
 export default async function CatalogPage({
   searchParams,
@@ -16,7 +17,7 @@ export default async function CatalogPage({
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
-      <section className="border-b border-slate-200/70 bg-white/75 backdrop-blur-xl">
+      <section className="border-b z-50 border-slate-200/70 bg-white/75 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -29,8 +30,9 @@ export default async function CatalogPage({
                 Katalog Furniture & Homeware Premium
               </h1>
               <p className="mt-3 max-w-2xl text-slate-500">
-                Temukan koleksi furniture dan perabotan pilihan dengan kualitas terbaik
-                dan harga terjangkau untuk rumah, kantor, maupun ruang usaha.
+                Temukan koleksi furniture dan perabotan pilihan dengan kualitas
+                terbaik dan harga terjangkau untuk rumah, kantor, maupun ruang
+                usaha.
               </p>
             </div>
 
@@ -77,7 +79,8 @@ export default async function CatalogPage({
               Produk Tidak Ditemukan
             </h2>
             <p className="mt-3 text-slate-500">
-              Coba gunakan kata kunci lain untuk menemukan produk yang Anda cari.
+              Coba gunakan kata kunci lain untuk menemukan produk yang Anda
+              cari.
             </p>
 
             <div className="mt-6">
@@ -93,10 +96,15 @@ export default async function CatalogPage({
           <>
             <div className="mb-5 flex items-center justify-between">
               <p className="text-sm text-slate-500">
-                Menampilkan <span className="font-semibold text-slate-900">{products.length}</span> produk
+                Menampilkan{" "}
+                <span className="font-semibold text-slate-900">
+                  {products.length}
+                </span>{" "}
+                produk
                 {q ? (
                   <>
-                    {" "}untuk kata kunci{" "}
+                    {" "}
+                    untuk kata kunci{" "}
                     <span className="font-semibold text-[#125EA9]">"{q}"</span>
                   </>
                 ) : null}
@@ -114,6 +122,17 @@ export default async function CatalogPage({
                     className="group overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                   >
                     <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                      <QuickAddToCartButton
+                        product={{
+                          id: product.id,
+                          slug: product.slug,
+                          name: product.name,
+                          price: Number(product.price),
+                          image:
+                            image?.type === "IMAGE" ? image.fileUrl : undefined,
+                        }}
+                      />
+
                       {image?.type === "IMAGE" ? (
                         <img
                           src={image.fileUrl}

@@ -45,7 +45,7 @@ export default async function HomePage() {
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 lg:px-8 lg:pb-28 lg:pt-16">
-          <nav className="mb-10 flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-xl">
+          <nav className="mb-10 z-50 flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
                 <Image
@@ -76,13 +76,6 @@ export default async function HomePage() {
               </Link>
 
               <CartBadge />
-
-              <Link
-                href="/login"
-                className="rounded-full bg-[#125EA9] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0f4f8f]"
-              >
-                Admin Login
-              </Link>
             </div>
           </nav>
 
