@@ -1,4 +1,5 @@
 import AdminAnalyticsCharts from "@/components/admin-analytics-charts";
+import { getAdminAnalyticsSummary } from "@/lib/analytics-cache";
 import { prisma } from "@/lib/prisma";
 import {
   BarChart3,
@@ -24,92 +25,12 @@ function formatPaymentMethod(method: string) {
 }
 
 export default async function AnalyticsPage() {
-  const [
-    confirmedOrders,
-    rejectedOrders,
-    waitingOrders,
-    pendingOrders,
-    totalCustomers,
-    revenueAggregate,
-    topProductsRaw,
-    topSalesRaw,
-    paymentMethodRaw,
-    orderItems,
-  ] = await Promise.all([
-    prisma.order.count({
-      where: { status: "CONFIRMED" },
-    }),
-    prisma.order.count({
-      where: { status: "REJECTED" },
-    }),
-    prisma.order.count({
-      where: { status: "WAITING_CONFIRMATION" },
-    }),
-    prisma.order.count({
-      where: { status: "PENDING_PAYMENT" },
-    }),
-    prisma.customer.count(),
-    prisma.order.aggregate({
-      _sum: {
-        total: true,
-      },
-      where: {
-        status: "CONFIRMED",
-      },
-    }),
-    prisma.orderItem.groupBy({
-      by: ["productId"],
-      _sum: {
-        quantity: true,
-        readyQty: true,
-        poQty: true,
-        subtotal: true,
-      },
-      orderBy: {
-        _sum: {
-          quantity: "desc",
-        },
-      },
-      take: 5,
-    }),
-    prisma.order.groupBy({
-      by: ["salesId"],
-      _count: {
-        id: true,
-      },
-      _sum: {
-        total: true,
-      },
-      where: {
-        status: "CONFIRMED",
-      },
-      orderBy: {
-        _sum: {
-          total: "desc",
-        },
-      },
-      take: 5,
-    }),
-    prisma.order.groupBy({
-      by: ["paymentMethod"],
-      _count: {
-        id: true,
-      },
-      _sum: {
-        total: true,
-      },
-    }),
-    prisma.orderItem.aggregate({
-      _sum: {
-        readyQty: true,
-        poQty: true,
-        quantity: true,
-      },
-    }),
-  ]);
+  const analytics = await getAdminAnalyticsSummary();
 
-  const productIds = topProductsRaw.map((item) => item.productId);
-  const salesIds = topSalesRaw.map((item) => item.salesId);
+  const productIds = analytics.topProductsRaw.map(
+    (item: any) => item.productId,
+  );
+  const salesIds = analytics.topSalesRaw.map((item: any) => item.salesId);
 
   const [products, sales] = await Promise.all([
     prisma.product.findMany({
@@ -132,10 +53,10 @@ export default async function AnalyticsPage() {
     }),
   ]);
 
-  const revenue = Number(revenueAggregate._sum.total || 0);
-  const totalReadyQty = Number(orderItems._sum.readyQty || 0);
-  const totalPoQty = Number(orderItems._sum.poQty || 0);
-  const totalQty = Number(orderItems._sum.quantity || 0);
+  const revenue = Number(analytics.revenueAggregate._sum.total || 0);
+  const totalReadyQty = Number(analytics.orderItems._sum.readyQty || 0);
+  const totalPoQty = Number(analytics.orderItems._sum.poQty || 0);
+  const totalQty = Number(analytics.orderItems._sum.quantity || 0);
 
   const summaryCards = [
     {
@@ -146,47 +67,47 @@ export default async function AnalyticsPage() {
     },
     {
       title: "Customer",
-      value: totalCustomers.toString(),
+      value: analytics.totalCustomers.toString(),
       icon: Users,
       color: "bg-blue-50 text-blue-700",
     },
     {
       title: "Confirmed Orders",
-      value: confirmedOrders.toString(),
+      value: analytics.confirmedOrders.toString(),
       icon: PackageCheck,
       color: "bg-green-50 text-green-700",
     },
     {
       title: "Rejected Orders",
-      value: rejectedOrders.toString(),
+      value: analytics.rejectedOrders.toString(),
       icon: XCircle,
       color: "bg-red-50 text-red-700",
     },
     {
       title: "Waiting Confirmation",
-      value: waitingOrders.toString(),
+      value: analytics.waitingOrders.toString(),
       icon: Clock3,
       color: "bg-amber-50 text-amber-700",
     },
     {
       title: "Pending Payment",
-      value: pendingOrders.toString(),
+      value: analytics.pendingOrders.toString(),
       icon: ShoppingCart,
       color: "bg-slate-100 text-slate-700",
     },
   ];
 
-  const paymentMethodData = paymentMethodRaw.map((item) => ({
+  const paymentMethodData = analytics.paymentMethodRaw.map((item: any) => ({
     name: formatPaymentMethod(item.paymentMethod),
     orders: item._count.id,
     total: Number(item._sum.total || 0),
   }));
 
   const statusData = [
-    { name: "Confirmed", value: confirmedOrders },
-    { name: "Rejected", value: rejectedOrders },
-    { name: "Waiting", value: waitingOrders },
-    { name: "Pending", value: pendingOrders },
+    { name: "Confirmed", value: analytics.confirmedOrders },
+    { name: "Rejected", value: analytics.rejectedOrders },
+    { name: "Waiting", value: analytics.waitingOrders },
+    { name: "Pending", value: analytics.pendingOrders },
   ];
 
   const stockData = [
@@ -205,7 +126,8 @@ export default async function AnalyticsPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-950">Analytics</h1>
             <p className="text-sm text-slate-500">
-              Ringkasan performa penjualan, stok ready vs PO, dan metode pembayaran.
+              Ringkasan performa penjualan, stok ready vs PO, dan metode
+              pembayaran.
             </p>
           </div>
         </div>
@@ -277,7 +199,7 @@ export default async function AnalyticsPage() {
           </h2>
 
           <div className="mt-5 space-y-3">
-            {paymentMethodRaw.map((item) => (
+            {analytics.paymentMethodRaw.map((item: any) => (
               <div
                 key={item.paymentMethod}
                 className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-50 px-4 py-4"
@@ -302,7 +224,7 @@ export default async function AnalyticsPage() {
               </div>
             ))}
 
-            {paymentMethodRaw.length === 0 ? (
+            {analytics.paymentMethodRaw.length === 0 ? (
               <p className="text-sm text-slate-500">
                 Belum ada data metode pembayaran.
               </p>
@@ -316,13 +238,11 @@ export default async function AnalyticsPage() {
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Truck className="h-5 w-5 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-950">
-              Top Produk
-            </h2>
+            <h2 className="text-lg font-semibold text-slate-950">Top Produk</h2>
           </div>
 
           <div className="mt-5 space-y-3">
-            {topProductsRaw.map((row) => {
+            {analytics.topProductsRaw.map((row: any) => {
               const product = products.find((p) => p.id === row.productId);
 
               return (
@@ -336,7 +256,8 @@ export default async function AnalyticsPage() {
                         {product?.name || row.productId}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        Qty: {row._sum.quantity || 0} • Ready: {row._sum.readyQty || 0} • PO: {row._sum.poQty || 0}
+                        Qty: {row._sum.quantity || 0} • Ready:{" "}
+                        {row._sum.readyQty || 0} • PO: {row._sum.poQty || 0}
                       </p>
                     </div>
 
@@ -348,7 +269,7 @@ export default async function AnalyticsPage() {
               );
             })}
 
-            {topProductsRaw.length === 0 ? (
+            {analytics.topProductsRaw.length === 0 ? (
               <p className="text-sm text-slate-500">Belum ada data produk.</p>
             ) : null}
           </div>
@@ -357,13 +278,11 @@ export default async function AnalyticsPage() {
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-950">
-              Top Sales
-            </h2>
+            <h2 className="text-lg font-semibold text-slate-950">Top Sales</h2>
           </div>
 
           <div className="mt-5 space-y-3">
-            {topSalesRaw.map((row) => {
+            {analytics.topSalesRaw.map((row: any) => {
               const salesUser = sales.find((s) => s.id === row.salesId);
 
               return (
@@ -389,7 +308,7 @@ export default async function AnalyticsPage() {
               );
             })}
 
-            {topSalesRaw.length === 0 ? (
+            {analytics.topSalesRaw.length === 0 ? (
               <p className="text-sm text-slate-500">Belum ada data sales.</p>
             ) : null}
           </div>

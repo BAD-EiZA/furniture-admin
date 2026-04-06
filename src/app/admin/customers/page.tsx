@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCustomerList } from "@/lib/customer-cache";
 
 export default async function CustomersPage({
   searchParams,
@@ -11,24 +12,14 @@ export default async function CustomersPage({
 
   const where = q
     ? {
-      OR: [
-        { name: { contains: q, mode: "insensitive" as const } },
-        { phone: { contains: q, mode: "insensitive" as const } },
-      ],
-    }
+        OR: [
+          { name: { contains: q, mode: "insensitive" as const } },
+          { phone: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
     : {};
 
-  const customers = await prisma.customer.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: {
-      orders: {
-        include: {
-          items: true,
-        },
-      },
-    },
-  });
+  const customers = await getCustomerList(q);
 
   return (
     <div className="space-y-6">
@@ -75,7 +66,10 @@ export default async function CustomersPage({
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Single Order Customer</p>
           <p className="mt-2 text-2xl font-bold text-slate-900">
-            {customers.filter((customer) => customer.orders.length === 1).length}
+            {
+              customers.filter((customer) => customer.orders.length === 1)
+                .length
+            }
           </p>
         </div>
       </div>
@@ -95,10 +89,13 @@ export default async function CustomersPage({
           <tbody>
             {customers.map((customer) => {
               const totalItems = customer.orders.reduce(
-                (sum, order) =>
+                (sum:any, order:any) =>
                   sum +
-                  order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
-                0
+                  order.items.reduce(
+                    (itemSum:any, item:any) => itemSum + item.quantity,
+                    0,
+                  ),
+                0,
               );
 
               const isRepeat = customer.orders.length > 1;
@@ -107,7 +104,9 @@ export default async function CustomersPage({
                 <tr key={customer.id} className="border-t">
                   <td className="px-4 py-3">
                     <div>
-                      <p className="font-medium text-slate-900">{customer.name}</p>
+                      <p className="font-medium text-slate-900">
+                        {customer.name}
+                      </p>
                     </div>
                   </td>
 
@@ -143,7 +142,10 @@ export default async function CustomersPage({
 
             {customers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td
+                  colSpan={6}
+                  className="px-4 py-8 text-center text-slate-500"
+                >
                   Belum ada customer
                 </td>
               </tr>

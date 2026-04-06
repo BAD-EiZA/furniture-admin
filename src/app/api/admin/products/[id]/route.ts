@@ -7,13 +7,13 @@ import { utapi } from "@/lib/uploadthing";
 import { writeAuditLog } from "@/lib/audit";
 import { updateProductSchema } from "@/lib/product-schema";
 import { createStockHistory } from "@/lib/stock-history";
+import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
 const mediaSchema = z.object({
   fileUrl: z.string().url(),
   fileKey: z.string().optional(),
   type: z.enum(["IMAGE", "VIDEO"]),
   sortOrder: z.number().int().positive(),
 });
-
 
 export async function GET(
   _req: Request,
@@ -56,7 +56,7 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getSession();
@@ -75,7 +75,7 @@ export async function PUT(
           message: "Data produk tidak valid",
           errors: parsed.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -90,7 +90,7 @@ export async function PUT(
     if (!existing) {
       return NextResponse.json(
         { message: "Produk tidak ditemukan" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -108,7 +108,7 @@ export async function PUT(
     if (readyStock > stock) {
       return NextResponse.json(
         { message: "Ready stock tidak boleh lebih besar dari total stock" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -134,7 +134,7 @@ export async function PUT(
       .filter((key): key is string => Boolean(key));
 
     const removedFileKeys = oldFileKeys.filter(
-      (key) => !nextFileKeys.includes(key)
+      (key) => !nextFileKeys.includes(key),
     );
 
     const updated = await prisma.product.update({
@@ -201,13 +201,20 @@ export async function PUT(
       afterData: updated,
     });
 
+    await deleteCacheByPattern("homepage:*");
+    await deleteCacheByPattern("catalog:*");
+    await deleteCache(`product:detail:${existing.slug}`);
+    await deleteCache(`product:detail:${updated.slug}`);
+    await deleteCache("admin:dashboard:summary");
+    await deleteCache("admin:analytics:summary");
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error("UPDATE_PRODUCT_ERROR", error);
 
     return NextResponse.json(
       { message: "Gagal mengupdate produk" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

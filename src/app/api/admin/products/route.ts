@@ -6,14 +6,13 @@ import { getSession } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { createProductSchema } from "@/lib/product-schema";
 import { createStockHistory } from "@/lib/stock-history";
+import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
 const mediaSchema = z.object({
   fileUrl: z.string().url(),
   fileKey: z.string().optional(),
   type: z.enum(["IMAGE", "VIDEO"]),
   sortOrder: z.number().int().positive(),
 });
-
-
 
 export async function GET() {
   try {
@@ -42,7 +41,6 @@ export async function GET() {
   }
 }
 
-
 function generateQrCodeValue(name: string) {
   const base = slugify(name).toUpperCase().replace(/-/g, "");
   return `PRD-${base}-${Date.now()}`;
@@ -65,7 +63,7 @@ export async function POST(req: Request) {
           message: "Data produk tidak valid",
           errors: parsed.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,7 +81,7 @@ export async function POST(req: Request) {
     if (readyStock > stock) {
       return NextResponse.json(
         { message: "Ready stock tidak boleh lebih besar dari total stock" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -148,14 +146,18 @@ export async function POST(req: Request) {
       changeAmount: product.readyStock,
       note: `Produk ${product.name} dibuat`,
     });
-
+    await deleteCacheByPattern("homepage:*");
+    await deleteCacheByPattern("catalog:*");
+    await deleteCache(`product:detail:${product.slug}`);
+    await deleteCache("admin:dashboard:summary");
+    await deleteCache("admin:analytics:summary");
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("CREATE_PRODUCT_ERROR", error);
 
     return NextResponse.json(
       { message: "Gagal membuat produk" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -19,102 +19,39 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AdminDashboardCharts from "@/components/admin-dashboard-charts";
+import { getAdminDashboardSummary } from "@/lib/dashboard-cache";
 
 export default async function AdminDashboardPage() {
-  const [
-    productCount,
-    adminCount,
-    salesCount,
-    orderCount,
-    recentOrders,
-    confirmedRevenue,
-    confirmedOrders,
-    rejectedOrders,
-    waitingOrders,
-    pendingOrders,
-    paymentMethodRaw,
-  ] = await Promise.all([
-    prisma.product.count(),
-    prisma.user.count({
-      where: {
-        role: {
-          in: ["SUPER_ADMIN", "ADMIN"],
-        },
-      },
-    }),
-    prisma.user.count({
-      where: { role: "SALES" },
-    }),
-    prisma.order.count(),
-    prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: {
-        sales: true,
-        items: {
-          include: { product: true },
-        },
-      },
-    }),
-    prisma.order.aggregate({
-      _sum: {
-        total: true,
-      },
-      where: {
-        status: "CONFIRMED",
-      },
-    }),
-    prisma.order.count({
-      where: { status: "CONFIRMED" },
-    }),
-    prisma.order.count({
-      where: { status: "REJECTED" },
-    }),
-    prisma.order.count({
-      where: { status: "WAITING_CONFIRMATION" },
-    }),
-    prisma.order.count({
-      where: { status: "PENDING_PAYMENT" },
-    }),
-    prisma.order.groupBy({
-      by: ["paymentMethod"],
-      _count: {
-        id: true,
-      },
-      _sum: {
-        total: true,
-      },
-    }),
-  ]);
+  const dashboardSummary = await getAdminDashboardSummary();
 
   const statCards = [
     {
       title: "Total Produk",
-      value: productCount,
+      value: dashboardSummary.productCount,
       icon: Package,
       hint: "Barang aktif di katalog",
     },
     {
       title: "Total Order",
-      value: orderCount,
+      value: dashboardSummary.orderCount,
       icon: ShoppingCart,
       hint: "Semua transaksi masuk",
     },
     {
       title: "Admin",
-      value: adminCount,
+      value: dashboardSummary.adminCount,
       icon: Users,
       hint: "Admin & super admin",
     },
     {
       title: "Sales",
-      value: salesCount,
+      value: dashboardSummary.salesCount,
       icon: Wallet,
       hint: "Sales aktif",
     },
   ];
 
-  const revenueData = paymentMethodRaw.map((item) => ({
+  const revenueData = dashboardSummary.paymentMethodRaw.map((item) => ({
     name:
       item.paymentMethod === "TRANSFER"
         ? "Transfer"
@@ -126,7 +63,7 @@ export default async function AdminDashboardPage() {
     total: Number(item._sum.total || 0),
   }));
 
-  const paymentMethodData = paymentMethodRaw.map((item) => ({
+  const paymentMethodData = dashboardSummary.paymentMethodRaw.map((item) => ({
     name:
       item.paymentMethod === "TRANSFER"
         ? "Transfer"
@@ -139,11 +76,22 @@ export default async function AdminDashboardPage() {
   }));
 
   const statusData = [
-    { name: "Confirmed", value: confirmedOrders },
-    { name: "Rejected", value: rejectedOrders },
-    { name: "Waiting", value: waitingOrders },
-    { name: "Pending", value: pendingOrders },
+    { name: "Confirmed", value: dashboardSummary.confirmedOrders },
+    { name: "Rejected", value: dashboardSummary.rejectedOrders },
+    { name: "Waiting", value: dashboardSummary.waitingOrders },
+    { name: "Pending", value: dashboardSummary.pendingOrders },
   ];
+
+  const recentOrders = await prisma.order.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    include: {
+      sales: true,
+      items: {
+        include: { product: true },
+      },
+    },
+  });
 
   return (
     <div className="space-y-6">

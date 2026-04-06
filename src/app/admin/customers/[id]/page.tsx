@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCustomerDetail } from "@/lib/customer-cache";
 
 function formatPaymentMethod(method: string) {
   if (method === "TRANSFER") return "Transfer";
@@ -16,34 +17,18 @@ export default async function CustomerDetailPage({
 }) {
   const { id } = await params;
 
-  const customer = await prisma.customer.findUnique({
-    where: { id },
-    include: {
-      orders: {
-        include: {
-          sales: true,
-          invoice: true,
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+ const customer = await getCustomerDetail(id);
 
   if (!customer) notFound();
 
   const totalOrders = customer.orders.length;
   const totalSpend = customer.orders.reduce(
-    (sum, order) => sum + Number(order.total),
+    (sum:any, order:any) => sum + Number(order.total),
     0
   );
   const totalItems = customer.orders.reduce(
-    (sum, order) =>
-      sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+    (sum:any, order:any) =>
+      sum + order.items.reduce((itemSum:any, item:any) => itemSum + item.quantity, 0),
     0
   );
   const repeatCustomer = totalOrders > 1;
@@ -125,13 +110,13 @@ export default async function CustomerDetailPage({
         </h2>
 
         <div className="mt-5 space-y-4">
-          {customer.orders.map((order) => {
+          {customer.orders.map((order:any) => {
             const totalQty = order.items.reduce(
-              (sum, item) => sum + item.quantity,
+              (sum:any, item:any) => sum + item.quantity,
               0
             );
             const totalPo = order.items.reduce(
-              (sum, item) => sum + item.poQty,
+              (sum:any, item:any) => sum + item.poQty,
               0
             );
 
@@ -175,7 +160,7 @@ export default async function CustomerDetailPage({
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  {order.items.map((item) => (
+                  {order.items.map((item:any) => (
                     <div
                       key={item.id}
                       className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600"

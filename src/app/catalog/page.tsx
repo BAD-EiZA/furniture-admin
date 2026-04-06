@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+
 import CartBadge from "@/components/cart-badge";
+import { getCatalogProducts } from "@/lib/catalog-cache";
 
 export default async function CatalogPage({
   searchParams,
@@ -11,50 +12,29 @@ export default async function CatalogPage({
   const params = await searchParams;
   const q = params.q?.trim() || "";
 
-  const where = {
-    isActive: true,
-    ...(q
-      ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" as const } },
-          { description: { contains: q, mode: "insensitive" as const } },
-        ],
-      }
-      : {}),
-  };
-
-  const products = await prisma.product.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: {
-      medias: {
-        orderBy: { sortOrder: "asc" },
-        take: 1,
-      },
-    },
-  });
+  const products = await getCatalogProducts(q);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_30%),linear-gradient(to_bottom,_#f8fafc,_#ffffff)]">
-      <section className="relative z-50 border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
+      <section className="border-b border-slate-200/70 bg-white/75 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#d9e7f6] bg-white/90 px-4 py-2 text-sm text-[#125EA9] shadow-sm">
                 <Sparkles className="h-4 w-4" />
-                Modern furniture collection
+                HIRONA HOMEWARE Collection
               </div>
 
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-                Katalog Produk
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+                Katalog Furniture & Homeware Premium
               </h1>
-              <p className="mt-2 max-w-2xl text-slate-500">
-                Temukan furnitur yang sesuai dengan kebutuhan Anda melalui
-                katalog yang lebih bersih, cepat, dan nyaman dijelajahi.
+              <p className="mt-3 max-w-2xl text-slate-500">
+                Temukan koleksi furniture dan perabotan pilihan dengan kualitas terbaik
+                dan harga terjangkau untuk rumah, kantor, maupun ruang usaha.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 z-50">
+            <div className="flex items-center gap-3">
               <CartBadge />
 
               <Link
@@ -65,129 +45,122 @@ export default async function CatalogPage({
               </Link>
             </div>
           </div>
+
+          <form className="mt-8 rounded-[24px] border border-slate-200/70 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  name="q"
+                  defaultValue={q}
+                  placeholder="Cari produk, misalnya kursi, meja, lemari..."
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-[#125EA9]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="rounded-2xl bg-[#125EA9] px-5 py-3 text-sm font-medium text-white shadow-lg shadow-[#125EA9]/20 transition hover:bg-[#0f4f8f]"
+              >
+                Cari Produk
+              </button>
+            </div>
+          </form>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 z-30">
-        <form className="mb-8 overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/85 p-4 shadow-lg backdrop-blur">
-          <div className="flex flex-col gap-3 md:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                name="q"
-                defaultValue={q}
-                placeholder="Cari produk, model, atau deskripsi..."
-                className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-3.5 outline-none transition focus:border-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="rounded-2xl bg-slate-900 px-6 py-3.5 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Cari Produk
-            </button>
-          </div>
-        </form>
-
-        {products.length > 0 ? (
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
-              Menampilkan{" "}
-              <span className="font-medium text-slate-700">
-                {products.length}
-              </span>{" "}
-              produk
-              {q ? (
-                <>
-                  {" "}
-                  untuk pencarian{" "}
-                  <span className="font-medium text-slate-700">"{q}"</span>
-                </>
-              ) : null}
-            </p>
-          </div>
-        ) : null}
-
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {products.map((product) => (
-            <Link
-              key={product.id}
-              href={`/p/${product.slug}`}
-              className="group overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
-            >
-              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                {product.medias[0]?.type === "IMAGE" ? (
-                  <img
-                    src={product.medias[0].fileUrl}
-                    alt={product.name}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                    No image
-                  </div>
-                )}
-
-                <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm backdrop-blur">
-                  Stok {product.stock}
-                </div>
-              </div>
-
-              <div className="space-y-3 p-5">
-                <div>
-                  <h2 className="line-clamp-1 text-lg font-semibold text-slate-900">
-                    {product.name}
-                  </h2>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                    {product.description}
-                  </p>
-                </div>
-
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">
-                      Price
-                    </p>
-                    <p className="text-xl font-bold text-blue-700">
-                      Rp {Number(product.price).toLocaleString("id-ID")}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition group-hover:bg-blue-600">
-                    Lihat
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {products.length === 0 ? (
-          <div className="mt-10 overflow-hidden rounded-[32px] border border-dashed border-slate-300 bg-white/80 px-6 py-16 text-center shadow-sm">
-            <div className="mx-auto max-w-xl">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-500">
-                <Search className="h-6 w-6" />
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900">
-                Produk tidak ditemukan
-              </h2>
-              <p className="mt-3 text-slate-500">
-                Coba gunakan kata kunci lain atau kembali lihat seluruh katalog
-                produk yang tersedia.
-              </p>
-              <div className="mt-6">
-                <Link
-                  href="/catalog"
-                  className="inline-flex rounded-2xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-                >
-                  Reset Pencarian
-                </Link>
-              </div>
+          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/85 p-12 text-center shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Produk Tidak Ditemukan
+            </h2>
+            <p className="mt-3 text-slate-500">
+              Coba gunakan kata kunci lain untuk menemukan produk yang Anda cari.
+            </p>
+
+            <div className="mt-6">
+              <Link
+                href="/catalog"
+                className="inline-flex rounded-2xl bg-[#125EA9] px-5 py-3 text-sm font-medium text-white hover:bg-[#0f4f8f]"
+              >
+                Lihat Semua Produk
+              </Link>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="mb-5 flex items-center justify-between">
+              <p className="text-sm text-slate-500">
+                Menampilkan <span className="font-semibold text-slate-900">{products.length}</span> produk
+                {q ? (
+                  <>
+                    {" "}untuk kata kunci{" "}
+                    <span className="font-semibold text-[#125EA9]">"{q}"</span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+              {products.map((product) => {
+                const image = product.medias?.[0];
+
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/p/${product.slug}`}
+                    className="group overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                      {image?.type === "IMAGE" ? (
+                        <img
+                          src={image.fileUrl}
+                          alt={product.name}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                          No image
+                        </div>
+                      )}
+
+                      <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-[#C89B3C] shadow-sm">
+                        Premium Choice
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <h2 className="line-clamp-2 text-lg font-semibold text-slate-900 transition group-hover:text-[#125EA9]">
+                        {product.name}
+                      </h2>
+
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                        {product.description}
+                      </p>
+
+                      <div className="mt-5 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">
+                            Harga
+                          </p>
+                          <p className="mt-1 text-lg font-bold text-[#125EA9]">
+                            Rp {Number(product.price).toLocaleString("id-ID")}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#eef4ff] px-3 py-2 text-xs font-medium text-[#125EA9]">
+                          Lihat Detail
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

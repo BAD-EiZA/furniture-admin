@@ -5,6 +5,7 @@ import { generateInvoiceNumber } from "@/lib/order";
 import { writeAuditLog } from "@/lib/audit";
 import { addOrderTimeline } from "@/lib/order-timeline";
 import { createStockHistory } from "@/lib/stock-history";
+import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
 
 async function confirmOrderByOrderId(params: {
   orderId: string;
@@ -149,8 +150,6 @@ async function confirmOrderByOrderId(params: {
     };
   });
 
-
-
   await addOrderTimeline({
     orderId: order.id,
     title: "Pembayaran dikonfirmasi",
@@ -197,7 +196,7 @@ export async function GET(req: Request) {
 
     if (token.usedAt) {
       return NextResponse.redirect(
-        `${process.env.APP_URL}/status/${token.order.orderCode}`
+        `${process.env.APP_URL}/status/${token.order.orderCode}`,
       );
     }
 
@@ -215,7 +214,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.redirect(
-      `${process.env.APP_URL}/status/${result.orderCode}`
+      `${process.env.APP_URL}/status/${result.orderCode}`,
     );
   } catch (error) {
     console.error("CONFIRM_ORDER_GET_ERROR", error);
@@ -240,7 +239,7 @@ export async function POST(req: Request) {
     if (!orderId) {
       return NextResponse.json(
         { message: "orderId wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -249,9 +248,17 @@ export async function POST(req: Request) {
     if (!result.ok) {
       return NextResponse.json(
         { message: result.message },
-        { status: result.status }
+        { status: result.status },
       );
     }
+
+    await deleteCache("admin:dashboard:summary");
+    await deleteCache("admin:analytics:summary");
+    await deleteCacheByPattern("catalog:*");
+    await deleteCacheByPattern("product:detail:*");
+    await deleteCacheByPattern("customers:*");
+    await deleteCacheByPattern("sales:dashboard:*");
+    await deleteCacheByPattern("stock-history:*");
 
     return NextResponse.json({
       message: "Order berhasil dikonfirmasi",
@@ -261,7 +268,7 @@ export async function POST(req: Request) {
     console.error("CONFIRM_ORDER_POST_ERROR", error);
     return NextResponse.json(
       { message: "Gagal mengonfirmasi order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

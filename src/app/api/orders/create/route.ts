@@ -11,6 +11,7 @@ import {
 } from "@/lib/pricing";
 import { sendOrderToSalesEmail } from "@/lib/email";
 import { addOrderTimeline } from "@/lib/order-timeline";
+import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
           message: "Data checkout tidak valid",
           errors: parsed.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
     if (paymentMethod === "TRANSFER" && !paymentProof) {
       return NextResponse.json(
         { message: "Bukti pembayaran wajib untuk metode transfer" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
     if (!sales || sales.role !== "SALES" || !sales.isActive) {
       return NextResponse.json(
         { message: "Sales tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
     if (products.length !== productIds.length) {
       return NextResponse.json(
         { message: "Ada produk yang tidak ditemukan" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
       if (!product || !product.isActive) {
         return NextResponse.json(
           { message: "Produk tidak valid atau tidak aktif" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
           minQty: tierItem.minQty,
           price: Number(tierItem.price),
           label: tierItem.label,
-        }))
+        })),
       );
 
       const split = splitReadyAndPO(inputItem.quantity, product.readyStock);
@@ -113,7 +114,7 @@ export async function POST(req: Request) {
       if (split.poQty > 0 && !product.allowPreOrder) {
         return NextResponse.json(
           { message: `${product.name} tidak mendukung pre-order` },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -217,6 +218,11 @@ export async function POST(req: Request) {
       });
     }
 
+    await deleteCache("admin:dashboard:summary");
+    await deleteCache("admin:analytics:summary");
+    await deleteCacheByPattern("catalog:*");
+    await deleteCacheByPattern("product:detail:*");
+
     return NextResponse.json({
       message: "Order berhasil dibuat",
       orderCode: order.orderCode,
@@ -229,7 +235,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { message: "Gagal membuat order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -177,7 +177,7 @@ export default async function OrderStatusPage({
     : "";
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_28%),linear-gradient(to_bottom,_#f8fafc,_#ffffff)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
       <section className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
@@ -382,7 +382,7 @@ export default async function OrderStatusPage({
                 ))}
               </div>
 
-              <div className="mt-6 rounded-2xl bg-slate-950 p-5 text-white">
+              <div className="mt-6 rounded-2xl bg-gradient-to-r from-[#0e3d6c] via-[#125EA9] to-[#2E4FAE] p-5 text-white">
                 <div className="space-y-2 text-sm text-slate-300">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
@@ -436,7 +436,7 @@ export default async function OrderStatusPage({
                   <a
                     href={`/api/orders/invoice/${order.orderCode}`}
                     target="_blank"
-                    className="inline-flex items-center justify-between rounded-2xl bg-blue-600 px-4 py-4 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
+                    className="inline-flex items-center justify-between rounded-2xl bg-[#125EA9] px-4 py-4 text-sm font-medium text-white shadow-lg shadow-[#125EA9]/20 hover:bg-[#0f4f8f]"
                   >
                     <span className="inline-flex items-center">
                       <FileText className="mr-2 h-4 w-4" />

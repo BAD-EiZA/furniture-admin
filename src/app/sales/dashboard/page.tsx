@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getSalesDashboardSummary } from "@/lib/sales-dashboard-cache";
 
 export default async function SalesDashboardPage() {
   const session = await getSession();
@@ -10,44 +11,13 @@ export default async function SalesDashboardPage() {
     redirect("/login");
   }
 
-  const [totalOrders, waitingOrders, confirmedOrders, invoiceSentOrders, recentOrders] =
-    await Promise.all([
-      prisma.order.count({
-        where: { salesId: session.userId },
-      }),
-      prisma.order.count({
-        where: {
-          salesId: session.userId,
-          status: "WAITING_CONFIRMATION",
-        },
-      }),
-      prisma.order.count({
-        where: {
-          salesId: session.userId,
-          status: "CONFIRMED",
-        },
-      }),
-      prisma.order.count({
-        where: {
-          salesId: session.userId,
-          status: "INVOICE_SENT",
-        },
-      }),
-      prisma.order.findMany({
-        where: {
-          salesId: session.userId,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
-          items: {
-            include: { product: true },
-          },
-          paymentProof: true,
-          invoice: true,
-        },
-      }),
-    ]);
+  const dashboard = await getSalesDashboardSummary(session.userId);
+
+  const totalOrders = dashboard.totalOrders;
+  const waitingOrders = dashboard.waitingOrders;
+  const confirmedOrders = dashboard.confirmedOrders;
+  const invoiceSentOrders = dashboard.invoiceSentOrders;
+  const recentOrders = dashboard.recentOrders;
 
   const cards = [
     { title: "Total Order", value: totalOrders },
@@ -136,7 +106,11 @@ export default async function SalesDashboardPage() {
 
                         {order.invoice && order.status === "CONFIRMED" ? (
                           <form action="/api/orders/invoice-sent" method="POST">
-                            <input type="hidden" name="orderId" value={order.id} />
+                            <input
+                              type="hidden"
+                              name="orderId"
+                              value={order.id}
+                            />
                             <button className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700">
                               Invoice Sent
                             </button>
