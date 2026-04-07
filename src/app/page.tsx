@@ -7,6 +7,12 @@ import {
   BriefcaseBusiness,
   MapPin,
   Phone,
+  Mail,
+  MessageCircle,
+  Building2,
+  ShieldCheck,
+  PackageCheck,
+  Handshake,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import CartBadge from "@/components/cart-badge";
@@ -329,59 +335,262 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] bg-white p-8 shadow-sm border border-slate-200">
+        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
           <h2 className="text-2xl font-bold text-slate-950">
             Nilai-Nilai Perusahaan
           </h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {[
-              ["Integritas", "Menjalankan bisnis dengan kejujuran dan etika tinggi"],
-              ["Kualitas", "Produk telah melalui kontrol kualitas ketat"],
-              ["Keandalan", "Stok tersedia dan pengiriman tepat waktu"],
-              ["Kemitraan", "Tumbuh bersama mitra bisnis"],
-            ].map(([title, desc]) => (
-              <div
-                key={title}
-                className="rounded-xl bg-slate-50 p-4"
-              >
-                <p className="font-semibold text-slate-900">{title}</p>
-                <p className="text-sm text-slate-500 mt-1">{desc}</p>
-              </div>
-            ))}
+              {
+                title: "Integritas",
+                desc: "Menjalankan bisnis dengan kejujuran dan standar etika yang tinggi.",
+                icon: ShieldCheck,
+                color: "bg-[#eef4ff] text-[#125EA9]",
+              },
+              {
+                title: "Kualitas",
+                desc: "Hanya mendistribusikan produk yang telah melalui kontrol kualitas yang ketat.",
+                icon: PackageCheck,
+                color: "bg-[#fff7e8] text-[#C89B3C]",
+              },
+              {
+                title: "Keandalan",
+                desc: "Menjamin ketersediaan stok dan ketepatan waktu pengiriman.",
+                icon: Building2,
+                color: "bg-[#eef2ff] text-[#2E4FAE]",
+              },
+              {
+                title: "Kemitraan",
+                desc: "Tumbuh bersama mitra bisnis melalui kerja sama yang saling menguntungkan.",
+                icon: Handshake,
+                color: "bg-[#eef4ff] text-[#125EA9]",
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-2xl bg-slate-50 p-5"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-slate-950">
+            Nilai-Nilai Perusahaan
+          </h2>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: "Integritas",
+                desc: "Menjalankan bisnis dengan kejujuran dan standar etika yang tinggi.",
+                icon: ShieldCheck,
+                color: "bg-[#eef4ff] text-[#125EA9]",
+              },
+              {
+                title: "Kualitas",
+                desc: "Hanya mendistribusikan produk yang telah melalui kontrol kualitas yang ketat.",
+                icon: PackageCheck,
+                color: "bg-[#fff7e8] text-[#C89B3C]",
+              },
+              {
+                title: "Keandalan",
+                desc: "Menjamin ketersediaan stok dan ketepatan waktu pengiriman.",
+                icon: Building2,
+                color: "bg-[#eef2ff] text-[#2E4FAE]",
+              },
+              {
+                title: "Kemitraan",
+                desc: "Tumbuh bersama mitra bisnis melalui kerja sama yang saling menguntungkan.",
+                icon: Handshake,
+                color: "bg-[#eef4ff] text-[#125EA9]",
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-2xl bg-slate-50 p-5"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+      3. Update section Kontak + tambahkan Google Maps embed
+
+      Cari section kontak lama, lalu ganti seluruh section tersebut menjadi ini:
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border p-6 bg-white shadow-sm">
-            <h3 className="text-lg font-semibold">Alamat</h3>
-            <p className="mt-3 text-sm text-slate-600 leading-7">
-              Jalan rapak Indah no 21 samping bengkel las sugi, kelurahan Lok Bahu,
-              kec. Sungai Kunjang, Samarinda, Kalimantan Timur
-              <br />
-              <span className="text-[#C89B3C] font-medium">
-                Ruko cat kuning depan pohon mangga
-              </span>
-            </p>
-          </div>
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold text-slate-950">
+            Informasi Kontak
+          </h2>
+          <p className="mt-3 text-slate-500">
+            Hubungi kami untuk informasi produk, kerja sama reseller, maupun pengadaan barang.
+          </p>
+        </div>
 
-          <div className="rounded-2xl border p-6 bg-white shadow-sm">
-            <h3 className="text-lg font-semibold">Kontak</h3>
+        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+          <div className="space-y-6">
+            <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#125EA9]">
+                  <MapPin className="h-5 w-5" />
+                </div>
 
-            <div className="mt-4 space-y-2 text-sm text-slate-600">
-              <p>Admin: 0823-1882-7890</p>
-              <p>Marketing (Nanda): 0838-2135-9356</p>
-              <p>Sales (Erwin): 0813-1068-611</p>
-              <p>Pengaduan (Owner): 0813-2467-6667</p>
-              <p>Email: hironasamarinda@gmail.com</p>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-950">
+                    Alamat Kantor
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    Jalan rapak Indah no 21 samping bengkel las sugi, kelurahan Lok Bahu,
+                    kec. Sungai Kunjang, Samarinda, Kalimantan Timur, Indonesia
+                    <br />
+                    <span className="font-medium text-[#C89B3C]">
+                      Ruko cat kuning depan pohon mangga
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4 text-sm text-slate-600">
-              <p>TikTok: hirona.Homeware</p>
-              <p>Instagram: hirona.homeware</p>
-              <p>Facebook: hirona homeware</p>
+            <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-950">
+                Telepon & WhatsApp
+              </h3>
+
+              <div className="mt-5 space-y-3">
+                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef4ff] text-[#125EA9]">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Admin Hirona</p>
+                    <p className="text-sm text-slate-500">0823-1882-7890</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff7e8] text-[#C89B3C]">
+                    <MessageCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Marketing Hirona (Nanda)</p>
+                    <p className="text-sm text-slate-500">0838-2135-9356</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef2ff] text-[#2E4FAE]">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Sales Hirona (Erwin Susanto)</p>
+                    <p className="text-sm text-slate-500">0813-1068-611</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Saran, Masukan, atau Pengaduan</p>
+                    <p className="text-sm text-slate-500">0813-2467-6667 (Owner)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-950">
+                Email & Media Sosial
+              </h3>
+
+              <div className="mt-5 space-y-3">
+                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef4ff] text-[#125EA9]">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">Email</p>
+                    <p className="text-sm text-slate-500">hironasamarinda@gmail.com</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <p><span className="font-medium text-slate-900">TikTok:</span> hirona.Homeware</p>
+                  <p className="mt-1"><span className="font-medium text-slate-900">Facebook:</span> hirona homeware</p>
+                  <p className="mt-1"><span className="font-medium text-slate-900">Instagram:</span> hirona.homeware</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-slate-200/70 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex items-center gap-3 px-2 pt-2">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#125EA9]">
+                <MapPin className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">
+                  Lokasi Google Maps
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Temukan lokasi toko HIRONA HOMEWARE dengan lebih mudah.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-[24px] border border-slate-200">
+              <iframe
+                src="https://www.google.com/maps?q=-0.5076625,117.0959844&z=17&output=embed"
+                width="100%"
+                height="500"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Lokasi HIRONA HOMEWARE"
+              />
             </div>
           </div>
         </div>
