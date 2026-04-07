@@ -394,69 +394,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-slate-950">
-            Nilai-Nilai Perusahaan
-          </h2>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[
-              {
-                title: "Integritas",
-                desc: "Menjalankan bisnis dengan kejujuran dan standar etika yang tinggi.",
-                icon: ShieldCheck,
-                color: "bg-[#eef4ff] text-[#125EA9]",
-              },
-              {
-                title: "Kualitas",
-                desc: "Hanya mendistribusikan produk yang telah melalui kontrol kualitas yang ketat.",
-                icon: PackageCheck,
-                color: "bg-[#fff7e8] text-[#C89B3C]",
-              },
-              {
-                title: "Keandalan",
-                desc: "Menjamin ketersediaan stok dan ketepatan waktu pengiriman.",
-                icon: Building2,
-                color: "bg-[#eef2ff] text-[#2E4FAE]",
-              },
-              {
-                title: "Kemitraan",
-                desc: "Tumbuh bersama mitra bisnis melalui kerja sama yang saling menguntungkan.",
-                icon: Handshake,
-                color: "bg-[#eef4ff] text-[#125EA9]",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <div
-                  key={item.title}
-                  className="rounded-2xl bg-slate-50 p-5"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-slate-900">{item.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-slate-500">
-                        {item.desc}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-      3. Update section Kontak + tambahkan Google Maps embed
-
-      Cari section kontak lama, lalu ganti seluruh section tersebut menjadi ini:
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
