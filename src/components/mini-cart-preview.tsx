@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, X } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/hooks/use-cart";
 
 export default function MiniCartPreview() {
-  const { ready, items, totalItems, removeItem } = useCart();
+  const {
+    ready,
+    items,
+    totalItems,
+    totalQuantity,
+    removeItem,
+    updateQty,
+  } = useCart();
 
   if (!ready) {
     return (
@@ -21,6 +28,29 @@ export default function MiniCartPreview() {
     0
   );
 
+  function handleIncrease(productId: string, currentQty: number) {
+    updateQty(productId, currentQty + 1);
+  }
+
+  function handleDecrease(productId: string, currentQty: number, name: string) {
+    if (currentQty <= 1) {
+      removeItem(productId);
+      toast.success("Produk dihapus dari keranjang", {
+        description: name,
+      });
+      return;
+    }
+
+    updateQty(productId, currentQty - 1);
+  }
+
+  function handleRemove(productId: string, name: string) {
+    removeItem(productId);
+    toast.success("Produk dihapus dari keranjang", {
+      description: name,
+    });
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl bg-white">
       <div className="border-b border-slate-100 px-4 py-4">
@@ -29,10 +59,17 @@ export default function MiniCartPreview() {
             <ShoppingCart className="h-4 w-4 text-slate-700" />
             <p className="font-semibold text-slate-900">Keranjang</p>
           </div>
+
           <span className="rounded-full bg-[#eef4ff] px-2 py-1 text-xs font-medium text-[#125EA9]">
             {totalItems} item
           </span>
         </div>
+
+        {items.length > 0 ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Total quantity: {totalQuantity}
+          </p>
+        ) : null}
       </div>
 
       <div className="max-h-[320px] overflow-y-auto">
@@ -48,7 +85,7 @@ export default function MiniCartPreview() {
                 className="rounded-xl border border-slate-100 bg-slate-50 p-3"
               >
                 <div className="flex gap-3">
-                  <div className="h-14 w-16 overflow-hidden rounded-lg bg-slate-100">
+                  <div className="h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                     {item.image ? (
                       <img
                         src={item.image}
@@ -62,26 +99,52 @@ export default function MiniCartPreview() {
                     <p className="line-clamp-1 font-medium text-slate-900">
                       {item.name}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Qty {item.quantity}
-                    </p>
+
                     <p className="mt-1 text-sm font-semibold text-[#125EA9]">
                       Rp {(item.price * item.quantity).toLocaleString("id-ID")}
                     </p>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      removeItem(item.productId);
-                      toast.success("Produk dihapus dari keranjang", {
-                        description: item.name,
-                      });
-                    }}
-                    className="self-start rounded-lg p-1 text-slate-400 transition hover:bg-white hover:text-red-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Harga satuan: Rp {item.price.toLocaleString("id-ID")}
+                    </p>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDecrease(item.productId, item.quantity, item.name)
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+                        aria-label={`Kurangi quantity ${item.name}`}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+
+                      <div className="inline-flex min-w-[36px] items-center justify-center rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 ring-1 ring-slate-200">
+                        {item.quantity}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleIncrease(item.productId, item.quantity)
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100"
+                        aria-label={`Tambah quantity ${item.name}`}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(item.productId, item.name)}
+                        className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-red-600"
+                        aria-label={`Hapus ${item.name} dari keranjang`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
