@@ -13,7 +13,7 @@ import {
   CreditCard,
   Package,
 } from "lucide-react";
-
+import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildWhatsAppInvoiceMessage } from "@/lib/whatsapp";
 import { buildWhatsAppOrderMessage } from "@/lib/whatsapp-order";
@@ -104,6 +104,9 @@ export default async function OrderStatusPage({
 }) {
   const { orderCode } = await params;
 
+  const session = await getSession().catch(() => null);
+  const isSales = session?.role === "SALES";
+
   const order = await prisma.order.findUnique({
     where: { orderCode },
     include: {
@@ -135,24 +138,24 @@ export default async function OrderStatusPage({
   const whatsappInvoiceMessage =
     order.invoice && order.items.length > 0
       ? buildWhatsAppInvoiceMessage({
-        customerName: order.customerNameDraft,
-        invoiceNumber: order.invoice.invoiceNumber,
-        orderCode: order.orderCode,
-        productName:
-          order.items.length === 1
-            ? order.items[0].product.name
-            : `${order.items.length} item produk`,
-        quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
-        total: Number(order.total),
-        invoicePdfUrl,
-      })
+          customerName: order.customerNameDraft,
+          invoiceNumber: order.invoice.invoiceNumber,
+          orderCode: order.orderCode,
+          productName:
+            order.items.length === 1
+              ? order.items[0].product.name
+              : `${order.items.length} item produk`,
+          quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
+          total: Number(order.total),
+          invoicePdfUrl,
+        })
       : "";
 
   const whatsappInvoiceHref =
     order.invoice && order.customerPhoneDraft
       ? `https://wa.me/${order.customerPhoneDraft.replace(/\D/g, "")}?text=${encodeURIComponent(
-        whatsappInvoiceMessage
-      )}`
+          whatsappInvoiceMessage,
+        )}`
       : "";
 
   const whatsappOrderMessage = buildWhatsAppOrderMessage({
@@ -172,8 +175,8 @@ export default async function OrderStatusPage({
 
   const whatsappOrderHref = order.sales.phone
     ? `https://wa.me/${order.sales.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-      whatsappOrderMessage
-    )}`
+        whatsappOrderMessage,
+      )}`
     : "";
 
   return (
@@ -198,13 +201,24 @@ export default async function OrderStatusPage({
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <p className="text-xs uppercase tracking-wide text-slate-400">
-                Order Code
-              </p>
-              <p className="mt-1 font-semibold text-slate-900">
-                {order.orderCode}
-              </p>
+            <div className="flex flex-wrap items-center gap-3">
+              {isSales ? (
+                <Link
+                  href="/sales/dashboard"
+                  className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  Kembali ke Dashboard Sales
+                </Link>
+              ) : null}
+
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
+                  Order Code
+                </p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {order.orderCode}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -293,7 +307,9 @@ export default async function OrderStatusPage({
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">Alamat Pengiriman</p>
+                    <p className="font-medium text-slate-900">
+                      Alamat Pengiriman
+                    </p>
                     <p className="mt-1 text-sm leading-7 text-slate-500">
                       {order.customerAddressDraft}
                     </p>
@@ -395,8 +411,7 @@ export default async function OrderStatusPage({
                     <span>{formatAdjustmentLabel(order.adjustmentType)}</span>
                     <span>
                       {order.adjustmentType === "DISCOUNT" ? "-" : ""}
-                      Rp{" "}
-                      {Number(order.adjustmentValue).toLocaleString("id-ID")}
+                      Rp {Number(order.adjustmentValue).toLocaleString("id-ID")}
                     </span>
                   </div>
                 </div>
@@ -491,7 +506,9 @@ export default async function OrderStatusPage({
             </div>
 
             <div className="overflow-hidden rounded-[30px] border border-slate-200/70 bg-white/90 p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-950">Kontak Sales</h2>
+              <h2 className="text-xl font-semibold text-slate-950">
+                Kontak Sales
+              </h2>
 
               <div className="mt-5 space-y-4">
                 <div className="rounded-2xl bg-slate-50 p-4">
@@ -523,7 +540,8 @@ export default async function OrderStatusPage({
                   Template WhatsApp Order
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Gunakan ini untuk menghubungi sales setelah pesanan berhasil dibuat.
+                  Gunakan ini untuk menghubungi sales setelah pesanan berhasil
+                  dibuat.
                 </p>
 
                 <textarea
@@ -540,7 +558,8 @@ export default async function OrderStatusPage({
                   Template WhatsApp Invoice
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Template ini digunakan sales untuk mengirim invoice setelah pembayaran dikonfirmasi.
+                  Template ini digunakan sales untuk mengirim invoice setelah
+                  pembayaran dikonfirmasi.
                 </p>
 
                 <textarea
