@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSalesDashboardSummary } from "@/lib/sales-dashboard-cache";
+import SalesOrderActionButtons from "@/components/sales-order-action-buttons";
 
 export default async function SalesDashboardPage() {
   const session = await getSession();
@@ -102,6 +103,13 @@ export default async function SalesDashboardPage() {
                           >
                             Bukti Bayar
                           </a>
+                        ) : null}
+
+                        {order.status === "WAITING_CONFIRMATION" ? (
+                          <SalesOrderActionButtons
+                            orderId={order.id}
+                            orderCode={order.orderCode}
+                          />
                         ) : null}
 
                         {order.invoice && order.status === "CONFIRMED" ? (

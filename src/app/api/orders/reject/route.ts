@@ -5,7 +5,7 @@ import { generateInvoiceNumber } from "@/lib/order";
 import { writeAuditLog } from "@/lib/audit";
 import { addOrderTimeline } from "@/lib/order-timeline";
 import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
-
+import { getSession } from "@/lib/auth";
 async function confirmOrderByOrderId(params: {
   orderId: string;
   tokenId?: string;
@@ -27,6 +27,27 @@ async function confirmOrderByOrderId(params: {
       ok: false as const,
       status: 404,
       message: "Order tidak ditemukan",
+    };
+  }
+
+  const session = await getSession().catch(() => null);
+
+  if (!session) {
+    return {
+      ok: false as const,
+      status: 401,
+      message: "Unauthorized",
+    };
+  }
+
+  const isSales = session.role === "SALES";
+  const isAdmin = ["SUPER_ADMIN", "ADMIN"].includes(session.role);
+
+  if (!isAdmin && !(isSales && order.salesId === session.userId)) {
+    return {
+      ok: false as const,
+      status: 403,
+      message: "Anda tidak memiliki akses untuk menolak order ini",
     };
   }
 
