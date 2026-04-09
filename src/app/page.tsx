@@ -180,12 +180,6 @@ export default async function HomePage() {
               >
                 Kebersihan
               </Link>
-              <Link
-                href="/login"
-                className="text-sm text-white/70 hover:text-white"
-              >
-                Admin
-              </Link>
             </div>
 
             <CartBadge />
