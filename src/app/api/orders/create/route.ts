@@ -6,9 +6,10 @@ import { createOrderSchema } from "@/lib/checkout-schema";
 import { generateOrderCode } from "@/lib/order";
 import {
   getPaymentAdjustment,
-  getTierPrice,
+  getShippingCostPerItem,
+  getUnitPriceAfterBulkDiscount,
   splitReadyAndPO,
-} from "@/lib/pricing";
+} from "@/lib/checkout-pricing";
 import { sendOrderToSalesEmail } from "@/lib/email";
 import { addOrderTimeline } from "@/lib/order-timeline";
 import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
@@ -34,9 +35,12 @@ export async function POST(req: Request) {
       customerName,
       customerPhone,
       customerAddress,
+      customerDistrict,
+      customerCity,
       paymentMethod,
       paymentNote,
       paymentProof,
+      acceptPoItems,
     } = parsed.data;
 
     if (paymentMethod === "TRANSFER" && !paymentProof) {
@@ -82,12 +86,16 @@ export async function POST(req: Request) {
       quantity: number;
       unitPrice: number;
       subtotal: number;
+      shippingCostPerItem: number;
+      discountPercent: number;
       readyQty: number;
       poQty: number;
       priceTierLabel: string;
     }[] = [];
 
     let subtotal = 0;
+    let shippingCostTotal = 0;
+    let hasPoItems = false;
 
     for (const inputItem of items) {
       const product = products.find((p) => p.id === inputItem.productId);
@@ -99,17 +107,11 @@ export async function POST(req: Request) {
         );
       }
 
-      const tier = getTierPrice(
-        inputItem.quantity,
-        Number(product.price),
-        product.tierPrices.map((tierItem) => ({
-          minQty: tierItem.minQty,
-          price: Number(tierItem.price),
-          label: tierItem.label,
-        })),
-      );
-
       const split = splitReadyAndPO(inputItem.quantity, product.readyStock);
+
+      if (split.poQty > 0) {
+        hasPoItems = true;
+      }
 
       if (split.poQty > 0 && !product.allowPreOrder) {
         return NextResponse.json(
@@ -118,18 +120,43 @@ export async function POST(req: Request) {
         );
       }
 
-      const itemSubtotal = tier.price * inputItem.quantity;
+      const shippingPerItem = getShippingCostPerItem(customerCity);
+
+      const { discountPercent, discountedUnitPrice, discountLabel } =
+        getUnitPriceAfterBulkDiscount(
+          Number(product.price),
+          inputItem.quantity,
+          product.pcsPerBal || 24,
+        );
+
+      const itemSubtotal =
+        (discountedUnitPrice + shippingPerItem) * inputItem.quantity;
+
       subtotal += itemSubtotal;
+      shippingCostTotal += shippingPerItem * inputItem.quantity;
 
       orderItemsData.push({
         productId: product.id,
         quantity: inputItem.quantity,
-        unitPrice: tier.price,
+        unitPrice: discountedUnitPrice,
         subtotal: itemSubtotal,
+        shippingCostPerItem: shippingPerItem,
+        discountPercent,
         readyQty: split.readyQty,
         poQty: split.poQty,
-        priceTierLabel: tier.label,
+        priceTierLabel: discountLabel,
       });
+    }
+
+    if (hasPoItems && !acceptPoItems) {
+      return NextResponse.json(
+        {
+          message:
+            "Terdapat item yang masuk kategori pre-order. Silakan konfirmasi terlebih dahulu untuk melanjutkan checkout.",
+          hasPoItems: true,
+        },
+        { status: 400 },
+      );
     }
 
     const adjustment = getPaymentAdjustment(subtotal, paymentMethod);
@@ -141,6 +168,8 @@ export async function POST(req: Request) {
         customerNameDraft: customerName,
         customerPhoneDraft: customerPhone,
         customerAddressDraft: customerAddress,
+        customerDistrictDraft: customerDistrict,
+        customerCityDraft: customerCity,
         salesId,
         status:
           paymentMethod === "TRANSFER"
@@ -149,6 +178,7 @@ export async function POST(req: Request) {
         paymentMethod,
         adjustmentType: adjustment.adjustmentType,
         adjustmentValue: adjustment.adjustmentValue,
+        shippingCost: shippingCostTotal,
         subtotal,
         total: adjustment.total,
         paymentNote: paymentNote || null,

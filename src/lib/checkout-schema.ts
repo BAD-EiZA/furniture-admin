@@ -10,13 +10,24 @@ export const createOrderSchema = z.object({
     )
     .min(1),
 
-  salesId: z.string().min(1),
-  customerName: z.string().min(2),
-  customerPhone: z.string().min(8),
-  customerAddress: z.string().min(5),
+  salesId: z.string().min(1, "Nama sales wajib dipilih"),
+  customerName: z.string().min(2, "Nama wajib diisi"),
+  customerPhone: z.string().min(8, "Nomor HP wajib diisi"),
+  customerAddress: z.string().min(5, "Alamat lengkap wajib diisi"),
+  customerDistrict: z.string().min(2, "Kecamatan wajib diisi"),
+  customerCity: z.enum([
+    "Samarinda",
+    "Balikpapan",
+    "Bontang",
+    "Sangatta",
+    "Bengalon",
+  ]),
 
-  paymentMethod: z.enum(["TRANSFER", "COD", "TEMPO"]),
+  paymentMethod: z.enum(["TRANSFER", "COD", "TEMPO"], {
+    message: "Metode pembayaran wajib dipilih",
+  }),
   paymentNote: z.string().optional(),
+  acceptPoItems: z.boolean().optional().default(false),
 
   paymentProof: z
     .object({

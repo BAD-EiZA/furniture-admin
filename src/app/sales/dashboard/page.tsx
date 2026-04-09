@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSalesDashboardSummary } from "@/lib/sales-dashboard-cache";
 import SalesOrderActionButtons from "@/components/sales-order-action-buttons";
-
+import { buildSalesInvoiceWhatsappMessage } from "@/lib/whatsapp-invoice";
 export default async function SalesDashboardPage() {
   const session = await getSession();
 
@@ -68,6 +68,25 @@ export default async function SalesDashboardPage() {
             <tbody>
               {recentOrders.map((order) => {
                 const item = order.items[0];
+                const invoicePdfUrl = `${process.env.APP_URL}/api/orders/invoice/${order.orderCode}`;
+
+                const whatsappInvoiceMessage =
+                  order.invoice && order.status === "CONFIRMED"
+                    ? buildSalesInvoiceWhatsappMessage({
+                        customerName: order.customerNameDraft,
+                        orderCode: order.orderCode,
+                        invoiceNumber: order.invoice.invoiceNumber,
+                        total: Number(order.total),
+                        invoicePdfUrl,
+                      })
+                    : "";
+
+                const whatsappInvoiceHref =
+                  order.invoice && order.status === "CONFIRMED"
+                    ? `https://wa.me/${order.customerPhoneDraft.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        whatsappInvoiceMessage,
+                      )}`
+                    : "";
                 return (
                   <tr key={order.id} className="border-t">
                     <td className="px-4 py-3">{order.orderCode}</td>
@@ -94,6 +113,16 @@ export default async function SalesDashboardPage() {
                         >
                           Detail
                         </Link>
+
+                        {whatsappInvoiceHref ? (
+                          <a
+                            href={whatsappInvoiceHref}
+                            target="_blank"
+                            className="rounded-lg bg-[#125EA9] px-3 py-2 text-xs font-medium text-white hover:bg-[#0f4f8f]"
+                          >
+                            Kirim Invoice WA
+                          </a>
+                        ) : null}
 
                         {order.paymentProof ? (
                           <a

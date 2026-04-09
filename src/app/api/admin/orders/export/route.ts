@@ -23,10 +23,7 @@ export async function GET(req: Request) {
     const session = await getSession();
 
     if (!session || !["SUPER_ADMIN", "ADMIN"].includes(session.role)) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -41,35 +38,52 @@ export async function GET(req: Request) {
     const where = {
       ...(q
         ? {
-          OR: [
-            { orderCode: { contains: q, mode: "insensitive" as const } },
-            { customerNameDraft: { contains: q, mode: "insensitive" as const } },
-            { customerPhoneDraft: { contains: q, mode: "insensitive" as const } },
-            { customerAddressDraft: { contains: q, mode: "insensitive" as const } },
-          ],
-        }
+            OR: [
+              { orderCode: { contains: q, mode: "insensitive" as const } },
+              {
+                customerNameDraft: {
+                  contains: q,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                customerPhoneDraft: {
+                  contains: q,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                customerAddressDraft: {
+                  contains: q,
+                  mode: "insensitive" as const,
+                },
+              },
+            ],
+          }
         : {}),
       ...(status ? { status: status as any } : {}),
       ...(paymentMethod ? { paymentMethod: paymentMethod as any } : {}),
       ...(salesId ? { salesId } : {}),
       ...(dateFrom || dateTo
         ? {
-          createdAt: {
-            ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00.000Z`) } : {}),
-            ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
-          },
-        }
+            createdAt: {
+              ...(dateFrom
+                ? { gte: new Date(`${dateFrom}T00:00:00.000Z`) }
+                : {}),
+              ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+            },
+          }
         : {}),
       ...(hasPo === "true"
         ? {
-          items: {
-            some: {
-              poQty: {
-                gt: 0,
+            items: {
+              some: {
+                poQty: {
+                  gt: 0,
+                },
               },
             },
-          },
-        }
+          }
         : {}),
     };
 
@@ -99,9 +113,13 @@ export async function GET(req: Request) {
       { header: "Customer", key: "customerName", width: 24 },
       { header: "No HP", key: "customerPhone", width: 18 },
       { header: "Alamat", key: "customerAddress", width: 35 },
+      { header: "Kecamatan", key: "customerDistrict", width: 20 },
+      { header: "Kota", key: "customerCity", width: 16 },
 
       { header: "Sales", key: "salesName", width: 22 },
       { header: "Payment Method", key: "paymentMethod", width: 18 },
+      { header: "Shipping / Item", key: "shippingCostPerItem", width: 16 },
+      { header: "Discount %", key: "discountPercent", width: 14 },
 
       { header: "Product", key: "productName", width: 28 },
       { header: "Tier Harga", key: "priceTierLabel", width: 18 },
@@ -112,6 +130,7 @@ export async function GET(req: Request) {
       { header: "Subtotal Item", key: "itemSubtotal", width: 18 },
 
       { header: "Order Subtotal", key: "orderSubtotal", width: 18 },
+      { header: "Shipping Total", key: "orderShipping", width: 18 },
       { header: "Adjustment Type", key: "adjustmentType", width: 18 },
       { header: "Adjustment Value", key: "adjustmentValue", width: 18 },
       { header: "Order Total", key: "orderTotal", width: 18 },
@@ -139,6 +158,11 @@ export async function GET(req: Request) {
           unitPrice: 0,
           itemSubtotal: 0,
           orderSubtotal: Number(order.subtotal),
+          customerDistrict: order.customerDistrictDraft,
+          customerCity: order.customerCityDraft,
+          shippingCostPerItem: 0,
+          discountPercent: 0,
+          orderShipping: Number(order.shippingCost || 0),
           adjustmentType: formatAdjustmentType(order.adjustmentType),
           adjustmentValue: Number(order.adjustmentValue),
           orderTotal: Number(order.total),
@@ -159,6 +183,11 @@ export async function GET(req: Request) {
           customerAddress: order.customerAddressDraft,
 
           salesName: order.sales.name,
+          customerDistrict: order.customerDistrictDraft,
+          customerCity: order.customerCityDraft,
+          shippingCostPerItem: Number(item.shippingCostPerItem || 0),
+          discountPercent: Number(item.discountPercent || 0) * 100,
+          orderShipping: Number(order.shippingCost || 0),
           paymentMethod: formatPaymentMethod(order.paymentMethod),
 
           productName: item.product.name,
@@ -225,7 +254,7 @@ export async function GET(req: Request) {
     sheet.views = [{ state: "frozen", ySplit: 1 }];
     sheet.autoFilter = {
       from: "A1",
-      to: "V1",
+      to: "Y1",
     };
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -259,7 +288,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       { message: "Gagal export order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

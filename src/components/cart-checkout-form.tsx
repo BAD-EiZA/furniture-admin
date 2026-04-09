@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { UploadButton } from "@uploadthing/react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { AlertTriangle, Copy, Landmark, QrCode } from "lucide-react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { useCart } from "@/hooks/use-cart";
-import { toast } from "sonner";
 
 type SalesOption = {
   id: string;
@@ -23,14 +24,10 @@ type ProductSummary = {
   price: number;
   readyStock: number;
   allowPreOrder: boolean;
+  pcsPerBal: number;
   medias: {
     fileUrl: string;
     type: "IMAGE" | "VIDEO";
-  }[];
-  tierPrices: {
-    minQty: number;
-    price: number;
-    label?: string | null;
   }[];
 };
 
@@ -40,10 +37,47 @@ type PaymentProofState = {
   mimeType?: string;
 } | null;
 
+type SiteSettingLite = {
+  bankName: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  qrisImageUrl: string;
+};
+
+const CITY_OPTIONS = [
+  "Samarinda",
+  "Balikpapan",
+  "Bontang",
+  "Sangatta",
+  "Bengalon",
+] as const;
+
+const CITY_SHIPPING_COST: Record<string, number> = {
+  Samarinda: 0,
+  Balikpapan: 15000,
+  Bontang: 18000,
+  Sangatta: 20000,
+  Bengalon: 22000,
+};
+
+function getBulkDiscountPercent(quantity: number, pcsPerBal = 24) {
+  if (pcsPerBal > 0 && quantity >= pcsPerBal) return 0.2;
+  if (quantity >= 12) return 0.05;
+  return 0;
+}
+
+function getDiscountLabel(quantity: number, pcsPerBal = 24) {
+  if (pcsPerBal > 0 && quantity >= pcsPerBal) return "Diskon 1 Bal 20%";
+  if (quantity >= 12) return "Diskon 12 pcs 5%";
+  return "Retail";
+}
+
 export default function CartCheckoutForm({
   salesOptions,
+  siteSetting,
 }: {
   salesOptions: SalesOption[];
+  siteSetting: SiteSettingLite;
 }) {
   const router = useRouter();
   const { ready, items, updateQty, removeItem, clearCart } = useCart();
@@ -54,16 +88,27 @@ export default function CartCheckoutForm({
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [salesId, setSalesId] = useState(salesOptions[0]?.id || "");
+  const [customerDistrict, setCustomerDistrict] = useState("");
+  const [customerCity, setCustomerCity] = useState<
+    (typeof CITY_OPTIONS)[number] | ""
+  >("");
+  const [salesId, setSalesId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
-    "TRANSFER" | "COD" | "TEMPO"
-  >("TRANSFER");
+    "TRANSFER" | "COD" | "TEMPO" | ""
+  >("");
   const [paymentNote, setPaymentNote] = useState("");
+  const [acceptPoItems, setAcceptPoItems] = useState(false);
   const [paymentProof, setPaymentProof] = useState<PaymentProofState>(null);
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (salesOptions.length > 0 && !salesId) {
+      setSalesId(salesOptions[0].id);
+    }
+  }, [salesOptions, salesId]);
 
   useEffect(() => {
     async function loadProducts() {
@@ -94,38 +139,58 @@ export default function CartCheckoutForm({
   }, [ready, items]);
 
   const mergedItems = useMemo(() => {
+    const shippingPerItem = customerCity
+      ? CITY_SHIPPING_COST[customerCity] || 0
+      : 0;
+
     return items.map((cartItem) => {
       const product = products.find((p) => p.id === cartItem.productId);
 
-      let selectedPrice = cartItem.price;
-      let priceTierLabel = "Retail";
+      const pcsPerBal = product?.pcsPerBal || 24;
+      const discountPercent = getBulkDiscountPercent(
+        cartItem.quantity,
+        pcsPerBal,
+      );
+      const discountLabel = getDiscountLabel(cartItem.quantity, pcsPerBal);
+      const discountedUnitPrice =
+        cartItem.price - cartItem.price * discountPercent;
 
-      if (product) {
-        const sorted = [...product.tierPrices].sort(
-          (a, b) => a.minQty - b.minQty,
-        );
-        for (const tier of sorted) {
-          if (cartItem.quantity >= tier.minQty) {
-            selectedPrice = Number(tier.price);
-            priceTierLabel = tier.label || `Min ${tier.minQty}`;
-          }
-        }
-      }
+      const readyQty = Math.min(cartItem.quantity, product?.readyStock || 0);
+      const poQty = Math.max(0, cartItem.quantity - readyQty);
 
-      const subtotal = selectedPrice * cartItem.quantity;
+      const subtotal =
+        (discountedUnitPrice + shippingPerItem) * cartItem.quantity;
 
       return {
         ...cartItem,
         product,
-        selectedPrice,
-        priceTierLabel,
+        discountedUnitPrice,
+        shippingPerItem,
+        discountPercent,
+        discountLabel,
+        readyQty,
+        poQty,
         subtotal,
       };
     });
-  }, [items, products]);
+  }, [items, products, customerCity]);
+
+  const hasPoItems = useMemo(
+    () => mergedItems.some((item) => item.poQty > 0),
+    [mergedItems],
+  );
 
   const subtotal = useMemo(
     () => mergedItems.reduce((sum, item) => sum + item.subtotal, 0),
+    [mergedItems],
+  );
+
+  const totalShipping = useMemo(
+    () =>
+      mergedItems.reduce(
+        (sum, item) => sum + item.shippingPerItem * item.quantity,
+        0,
+      ),
     [mergedItems],
   );
 
@@ -133,7 +198,7 @@ export default function CartCheckoutForm({
     if (paymentMethod === "TRANSFER") {
       const value = subtotal * 0.01;
       return {
-        label: "Diskon Transfer 1%",
+        label: "Potongan Transfer 1%",
         value: -value,
         total: subtotal - value,
       };
@@ -166,8 +231,50 @@ export default function CartCheckoutForm({
         return;
       }
 
+      if (!customerName.trim()) {
+        setError("Nama wajib diisi");
+        return;
+      }
+
+      if (!customerPhone.trim()) {
+        setError("Nomor HP wajib diisi");
+        return;
+      }
+
+      if (!customerAddress.trim()) {
+        setError("Alamat lengkap wajib diisi");
+        return;
+      }
+
+      if (!customerDistrict.trim()) {
+        setError("Kecamatan wajib diisi");
+        return;
+      }
+
+      if (!customerCity) {
+        setError("Kota wajib dipilih");
+        return;
+      }
+
+      if (!salesId) {
+        setError("Nama sales wajib dipilih");
+        return;
+      }
+
+      if (!paymentMethod) {
+        setError("Metode pembayaran wajib dipilih");
+        return;
+      }
+
       if (paymentMethod === "TRANSFER" && !paymentProof) {
         setError("Bukti pembayaran wajib untuk metode transfer");
+        return;
+      }
+
+      if (hasPoItems && !acceptPoItems) {
+        setError(
+          "Terdapat item pre-order. Silakan centang persetujuan untuk melanjutkan.",
+        );
         return;
       }
 
@@ -180,8 +287,11 @@ export default function CartCheckoutForm({
         customerName,
         customerPhone,
         customerAddress,
+        customerDistrict,
+        customerCity,
         paymentMethod,
         paymentNote,
+        acceptPoItems,
         paymentProof: paymentProof || undefined,
       };
 
@@ -216,6 +326,25 @@ export default function CartCheckoutForm({
     }
   }
 
+  function applyReadyStockOnly() {
+    mergedItems.forEach((item) => {
+      if (item.poQty > 0) {
+        updateQty(item.productId, item.readyQty);
+      }
+    });
+    setAcceptPoItems(false);
+    toast.success("Quantity disesuaikan ke batas ready stock");
+  }
+
+  async function copyAccountNumber() {
+    try {
+      await navigator.clipboard.writeText(siteSetting.bankAccountNumber);
+      toast.success("Nomor rekening disalin");
+    } catch {
+      toast.error("Gagal menyalin nomor rekening");
+    }
+  }
+
   if (!ready) {
     return (
       <div className="rounded-[30px] border border-slate-200/70 bg-white p-6 shadow-sm">
@@ -234,7 +363,7 @@ export default function CartCheckoutForm({
         <div className="mt-6">
           <Link
             href="/catalog"
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-2xl bg-[#125EA9] px-5 py-3 text-sm font-medium text-white hover:bg-[#0f4f8f]"
           >
             Ke Katalog
           </Link>
@@ -253,7 +382,7 @@ export default function CartCheckoutForm({
           Data Pesanan
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Isi data customer sekali saja untuk seluruh item dalam keranjang.
+          Isi data customer satu kali untuk seluruh item dalam keranjang.
         </p>
       </div>
 
@@ -290,10 +419,18 @@ export default function CartCheckoutForm({
                         {item.name}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        Harga: Rp {item.selectedPrice.toLocaleString("id-ID")}
+                        Harga awal: Rp {item.price.toLocaleString("id-ID")}
                       </p>
                       <p className="text-sm text-slate-500">
-                        Tier: {item.priceTierLabel}
+                        Harga final: Rp{" "}
+                        {item.discountedUnitPrice.toLocaleString("id-ID")}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        Diskon: {item.discountLabel}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        Ongkir/item: Rp{" "}
+                        {item.shippingPerItem.toLocaleString("id-ID")}
                       </p>
                       <p className="text-sm text-slate-500">
                         Ready stock: {item.product?.readyStock ?? "-"}
@@ -306,10 +443,10 @@ export default function CartCheckoutForm({
                       type="number"
                       min={1}
                       value={item.quantity}
-                      onChange={(e) => {
-                        const nextQty = Number(e.target.value || 1);
-                        updateQty(item.productId, nextQty);
-                      }}
+                      onChange={(e) =>
+                        updateQty(item.productId, Number(e.target.value || 1))
+                      }
+                      className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2"
                     />
 
                     <button
@@ -327,6 +464,18 @@ export default function CartCheckoutForm({
                   </div>
                 </div>
 
+                {item.poQty > 0 ? (
+                  <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        {item.readyQty} item ready stock, {item.poQty} item
+                        masuk kategori pre-order.
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mt-3 text-right">
                   <p className="text-sm text-slate-500">
                     Subtotal:{" "}
@@ -339,6 +488,31 @@ export default function CartCheckoutForm({
             ))}
           </div>
         </div>
+
+        {hasPoItems ? (
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+              <input
+                type="checkbox"
+                checked={acceptPoItems}
+                onChange={(e) => setAcceptPoItems(e.target.checked)}
+                className="mt-1"
+              />
+              <span>
+                Saya memahami bahwa sebagian item masuk kategori pre-order dan
+                tetap ingin melanjutkan checkout.
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={applyReadyStockOnly}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Sesuaikan ke Ready Stock
+            </button>
+          </div>
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
@@ -383,13 +557,51 @@ export default function CartCheckoutForm({
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Pilih Sales
+              Kecamatan *
+            </label>
+            <input
+              type="text"
+              value={customerDistrict}
+              onChange={(e) => setCustomerDistrict(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
+              placeholder="Masukkan kecamatan"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Kota *
+            </label>
+            <select
+              value={customerCity}
+              onChange={(e) =>
+                setCustomerCity(
+                  e.target.value as (typeof CITY_OPTIONS)[number] | "",
+                )
+              }
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
+            >
+              <option value="">Pilih kota</option>
+              {CITY_OPTIONS.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Nama Sales *
             </label>
             <select
               value={salesId}
               onChange={(e) => setSalesId(e.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
             >
+              <option value="">Pilih sales</option>
               {salesOptions.map((sales) => (
                 <option key={sales.id} value={sales.id}>
                   {sales.name}
@@ -400,20 +612,32 @@ export default function CartCheckoutForm({
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Metode Pembayaran
+              Metode Pembayaran *
             </label>
             <select
               value={paymentMethod}
               onChange={(e) =>
-                setPaymentMethod(e.target.value as "TRANSFER" | "COD" | "TEMPO")
+                setPaymentMethod(
+                  e.target.value as "TRANSFER" | "COD" | "TEMPO" | "",
+                )
               }
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
             >
-              <option value="TRANSFER">Transfer Sebelum Pengiriman</option>
+              <option value="">Pilih metode pembayaran</option>
+              <option value="TRANSFER">Transfer / Bayar di Muka</option>
               <option value="COD">COD</option>
               <option value="TEMPO">Tempo</option>
             </select>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+          <p className="font-medium text-slate-900">Aturan Pembayaran</p>
+          <ul className="mt-3 space-y-2">
+            <li>• Transfer / Bayar di Muka: Potongan 1%</li>
+            <li>• COD: Harga Normal</li>
+            <li>• Tempo: Penambahan 3%</li>
+          </ul>
         </div>
 
         <div>
@@ -429,64 +653,116 @@ export default function CartCheckoutForm({
         </div>
 
         {paymentMethod === "TRANSFER" ? (
-          <div>
-            <p className="mb-3 text-sm font-medium text-slate-700">
-              Upload Bukti Pembayaran
-            </p>
+          <>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex items-center gap-2">
+                <Landmark className="h-4 w-4 text-[#125EA9]" />
+                <p className="font-medium text-slate-900">Rekening Tujuan</p>
+              </div>
 
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-              <UploadButton<OurFileRouter, "paymentProof">
-                endpoint="paymentProof"
-                appearance={{
-                  button:
-                    "ut-ready:bg-blue-600 ut-uploading:bg-blue-400 rounded-xl px-4 py-2 text-sm font-medium",
-                  container: "w-full",
-                  allowedContent: "text-xs text-slate-500 mt-2",
-                }}
-                onUploadBegin={() => setUploading(true)}
-                onClientUploadComplete={(res) => {
-                  setUploading(false);
-
-                  const first = res[0];
-                  if (!first) return;
-
-                  setPaymentProof({
-                    fileUrl: first.url,
-                    fileKey: first.key,
-                    mimeType: first.type,
-                  });
-                }}
-                onUploadError={(uploadError: Error) => {
-                  setUploading(false);
-                  setError(uploadError.message);
-                }}
-              />
-
-              {uploading ? (
-                <p className="mt-3 text-sm text-[#125EA9]">
-                  Sedang upload bukti pembayaran...
-                </p>
-              ) : null}
-
-              {paymentProof ? (
-                <a
-                  href={paymentProof.fileUrl}
-                  target="_blank"
-                  className="mt-3 inline-block text-sm font-medium text-[#125EA9] underline"
-                >
-                  Lihat bukti pembayaran
-                </a>
-              ) : null}
+              <div className="mt-3 space-y-1 text-sm text-slate-600">
+                <p>Bank: {siteSetting.bankName || "-"}</p>
+                <p>Atas Nama: {siteSetting.bankAccountName || "-"}</p>
+                <div className="flex items-center gap-2">
+                  <span>
+                    No. Rekening: {siteSetting.bankAccountNumber || "-"}
+                  </span>
+                  {siteSetting.bankAccountNumber ? (
+                    <button
+                      type="button"
+                      onClick={copyAccountNumber}
+                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <Copy className="mr-1 h-3 w-3" />
+                      Copy
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             </div>
-          </div>
+
+            {siteSetting.qrisImageUrl ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center gap-2">
+                  <QrCode className="h-4 w-4 text-[#125EA9]" />
+                  <p className="font-medium text-slate-900">QRIS</p>
+                </div>
+
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <img
+                    src={siteSetting.qrisImageUrl}
+                    alt="QRIS Hirona"
+                    className="mx-auto h-52 w-auto object-contain"
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <p className="mb-3 text-sm font-medium text-slate-700">
+                Upload Bukti Pembayaran
+              </p>
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <UploadButton<OurFileRouter, "paymentProof">
+                  endpoint="paymentProof"
+                  appearance={{
+                    button:
+                      "ut-ready:bg-[#125EA9] ut-uploading:bg-[#4c83bd] rounded-xl px-4 py-2 text-sm font-medium",
+                    container: "w-full",
+                    allowedContent: "text-xs text-slate-500 mt-2",
+                  }}
+                  onUploadBegin={() => setUploading(true)}
+                  onClientUploadComplete={(res) => {
+                    setUploading(false);
+
+                    const first = res[0];
+                    if (!first) return;
+
+                    setPaymentProof({
+                      fileUrl: first.url,
+                      fileKey: first.key,
+                      mimeType: first.type,
+                    });
+                  }}
+                  onUploadError={(uploadError: Error) => {
+                    setUploading(false);
+                    setError(uploadError.message);
+                  }}
+                />
+
+                {uploading ? (
+                  <p className="mt-3 text-sm text-[#125EA9]">
+                    Sedang upload bukti pembayaran...
+                  </p>
+                ) : null}
+
+                {paymentProof ? (
+                  <a
+                    href={paymentProof.fileUrl}
+                    target="_blank"
+                    className="mt-3 inline-block text-sm font-medium text-[#125EA9] underline"
+                  >
+                    Lihat bukti pembayaran
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </>
         ) : null}
 
         <div className="rounded-[24px] bg-gradient-to-r from-[#0e3d6c] via-[#125EA9] to-[#2E4FAE] p-5 text-white">
-          <div className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-slate-100">
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span>Rp {subtotal.toLocaleString("id-ID")}</span>
             </div>
+
+            <div className="flex justify-between">
+              <span>Ongkir</span>
+              <span>Rp {totalShipping.toLocaleString("id-ID")}</span>
+            </div>
+
             <div className="flex justify-between">
               <span>{adjustment.label}</span>
               <span>
@@ -497,12 +773,18 @@ export default function CartCheckoutForm({
           </div>
 
           <div className="mt-4 border-t border-white/10 pt-4">
-            <p className="text-sm text-slate-300">Total Pembayaran</p>
+            <p className="text-sm text-slate-100">Total Pembayaran</p>
             <p className="mt-2 text-3xl font-bold">
               Rp {adjustment.total.toLocaleString("id-ID")}
             </p>
           </div>
         </div>
+
+        {error ? (
+          <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        ) : null}
 
         <div className="flex justify-start">
           <Link
@@ -512,12 +794,6 @@ export default function CartCheckoutForm({
             Lanjut Belanja
           </Link>
         </div>
-
-        {error ? (
-          <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        ) : null}
 
         <button
           type="submit"

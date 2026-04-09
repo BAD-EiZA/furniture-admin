@@ -6,25 +6,30 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
+
 import { prisma } from "@/lib/prisma";
+import { getSiteSetting } from "@/lib/site-settings";
 import CartCheckoutForm from "@/components/cart-checkout-form";
 
 export default async function CheckoutPage() {
-  const sales = await prisma.user.findMany({
-    where: {
-      role: "SALES",
-      isActive: true,
-    },
-    orderBy: {
-      name: "asc",
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-    },
-  });
+  const [sales, setting] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        role: "SALES",
+        isActive: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+      },
+    }),
+    getSiteSetting(),
+  ]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
@@ -109,8 +114,8 @@ export default async function CheckoutPage() {
                         </p>
                         <p className="mt-1 text-sm text-slate-500">
                           Jalan rapak Indah no 21 samping bengkel las sugi,
-                          kelurahan Lok Bahu, kec. Sungai Kunjang Samarinda.
-                          Kaltim
+                          kelurahan Lok Bahu, kec. Sungai Kunjang Samarinda,
+                          Kalimantan Timur.
                         </p>
                       </div>
                     </div>
@@ -126,8 +131,8 @@ export default async function CheckoutPage() {
                           Kontak HIRONA
                         </p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Admin Hirona, Hengky, dan Marketing Nanda siap
-                          membantu proses pesanan Anda.
+                          Admin, Marketing, dan Sales siap membantu proses
+                          pesanan Anda.
                         </p>
                       </div>
                     </div>
@@ -135,10 +140,51 @@ export default async function CheckoutPage() {
                 </div>
               </div>
             </div>
+
+            <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-950">
+                Informasi Pembayaran
+              </h3>
+
+              <div className="mt-4 space-y-3 text-sm text-slate-600">
+                <p>
+                  <span className="font-medium text-slate-900">Bank:</span>{" "}
+                  {setting.bankName || "-"}
+                </p>
+                <p>
+                  <span className="font-medium text-slate-900">Atas Nama:</span>{" "}
+                  {setting.bankAccountName || "-"}
+                </p>
+                <p>
+                  <span className="font-medium text-slate-900">
+                    No. Rekening:
+                  </span>{" "}
+                  {setting.bankAccountNumber || "-"}
+                </p>
+              </div>
+
+              {setting.qrisImageUrl ? (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <img
+                    src={setting.qrisImageUrl}
+                    alt="QRIS Hirona"
+                    className="mx-auto h-48 w-auto object-contain"
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div>
-            <CartCheckoutForm salesOptions={sales} />
+            <CartCheckoutForm
+              salesOptions={sales}
+              siteSetting={{
+                bankName: setting.bankName || "",
+                bankAccountName: setting.bankAccountName || "",
+                bankAccountNumber: setting.bankAccountNumber || "",
+                qrisImageUrl: setting.qrisImageUrl || "",
+              }}
+            />
           </div>
         </div>
       </section>

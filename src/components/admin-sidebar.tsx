@@ -11,6 +11,7 @@ import {
   BarChart3,
   ContactRound,
   Boxes,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +55,12 @@ const navItems = [
     label: "Customers",
     href: "/admin/customers",
     icon: ContactRound,
+  },
+  {
+    label: "Site Settings",
+    href: "/admin/site-settings",
+    icon: Settings,
+    permission: "MANAGE_USERS",
   },
 ];
 
