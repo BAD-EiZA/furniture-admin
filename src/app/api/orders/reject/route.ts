@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { generateInvoiceNumber } from "@/lib/order";
 import { writeAuditLog } from "@/lib/audit";
 import { addOrderTimeline } from "@/lib/order-timeline";
 import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
 import { getSession } from "@/lib/auth";
-async function confirmOrderByOrderId(params: {
+
+async function rejectOrderByOrderId(params: {
   orderId: string;
   tokenId?: string;
+  reason?: string;
 }) {
   const order = await prisma.order.findUnique({
     where: { id: params.orderId },
     include: {
-      items: {
-        include: {
-          product: true,
-        },
-      },
       invoice: true,
     },
   });
@@ -51,75 +47,35 @@ async function confirmOrderByOrderId(params: {
     };
   }
 
-  if (order.status === "CONFIRMED") {
+  if (order.status === "REJECTED") {
     return {
       ok: true as const,
-      alreadyConfirmed: true,
+      alreadyRejected: true,
       orderCode: order.orderCode,
     };
   }
 
-  if (order.status === "REJECTED") {
+  if (order.status === "CONFIRMED" || order.status === "INVOICE_SENT") {
     return {
       ok: false as const,
       status: 400,
-      message: "Order sudah ditolak dan tidak bisa dikonfirmasi",
+      message: "Order yang sudah dikonfirmasi tidak bisa ditolak",
     };
   }
 
-  for (const item of order.items) {
-    if (item.readyQty > item.product.readyStock) {
-      return {
-        ok: false as const,
-        status: 400,
-        message: `Ready stock ${item.product.name} tidak mencukupi saat konfirmasi`,
-      };
-    }
-  }
-
-  const result = await prisma.$transaction(async (tx) => {
-    const customer = await tx.customer.create({
-      data: {
-        name: order.customerNameDraft,
-        phone: order.customerPhoneDraft,
-      },
-    });
-
-    for (const item of order.items) {
-      if (item.readyQty > 0) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            readyStock: {
-              decrement: item.readyQty,
-            },
-            stock: {
-              decrement: item.readyQty,
-            },
-          },
-        });
-      }
-    }
-
-    const updatedOrder = await tx.order.update({
+  const updatedOrder = await prisma.$transaction(async (tx) => {
+    const updated = await tx.order.update({
       where: { id: order.id },
       data: {
-        customerId: customer.id,
-        status: "CONFIRMED",
-        confirmedAt: new Date(),
+        status: "REJECTED",
+        rejectedAt: new Date(),
+        internalNote: params.reason
+          ? order.internalNote
+            ? `${order.internalNote}\n\nAlasan reject: ${params.reason}`
+            : `Alasan reject: ${params.reason}`
+          : order.internalNote,
       },
     });
-
-    let invoice = order.invoice;
-
-    if (!invoice) {
-      invoice = await tx.invoice.create({
-        data: {
-          orderId: order.id,
-          invoiceNumber: generateInvoiceNumber(),
-        },
-      });
-    }
 
     if (params.tokenId) {
       await tx.emailConfirmationToken.update({
@@ -130,29 +86,37 @@ async function confirmOrderByOrderId(params: {
       });
     }
 
-    return {
-      updatedOrder,
-      invoice,
-    };
+    return updated;
   });
 
   await addOrderTimeline({
     orderId: order.id,
-    title: "Pembayaran dikonfirmasi",
-    description: `Order ${order.orderCode} berhasil dikonfirmasi`,
+    title: "Pembayaran ditolak",
+    description: params.reason
+      ? `Order ${order.orderCode} ditolak. Alasan: ${params.reason}`
+      : `Order ${order.orderCode} ditolak`,
   });
 
   await writeAuditLog({
-    action: "CONFIRM_PAYMENT",
+    action: "REJECT_PAYMENT",
     entityType: "ORDER",
     entityId: order.id,
-    description: `Konfirmasi pembayaran order ${order.orderCode}`,
+    description: `Menolak pembayaran order ${order.orderCode}`,
+    beforeData: {
+      status: order.status,
+      rejectedAt: order.rejectedAt,
+      internalNote: order.internalNote,
+    },
     afterData: {
-      orderCode: order.orderCode,
-      status: "CONFIRMED",
-      invoiceNumber: result.invoice?.invoiceNumber || null,
+      status: updatedOrder.status,
+      rejectedAt: updatedOrder.rejectedAt,
+      internalNote: updatedOrder.internalNote,
     },
   });
+
+  await deleteCache("admin:dashboard:summary");
+  await deleteCache("admin:analytics:summary");
+  await deleteCacheByPattern("sales:dashboard:*");
 
   return {
     ok: true as const,
@@ -164,6 +128,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const tokenValue = searchParams.get("token");
+    const reason = searchParams.get("reason") || "";
 
     if (!tokenValue) {
       return new NextResponse("Token tidak ditemukan", { status: 400 });
@@ -190,9 +155,10 @@ export async function GET(req: Request) {
       return new NextResponse("Token sudah kedaluwarsa", { status: 400 });
     }
 
-    const result = await confirmOrderByOrderId({
+    const result = await rejectOrderByOrderId({
       orderId: token.orderId,
       tokenId: token.id,
+      reason,
     });
 
     if (!result.ok) {
@@ -203,8 +169,12 @@ export async function GET(req: Request) {
       `${process.env.APP_URL}/status/${result.orderCode}`,
     );
   } catch (error) {
-    console.error("CONFIRM_ORDER_GET_ERROR", error);
-    return new NextResponse("Gagal mengonfirmasi order", { status: 500 });
+    console.error("REJECT_ORDER_GET_ERROR", error);
+
+    const message =
+      error instanceof Error ? error.message : "Gagal menolak order";
+
+    return new NextResponse(message, { status: 500 });
   }
 }
 
@@ -213,13 +183,16 @@ export async function POST(req: Request) {
     const contentType = req.headers.get("content-type") || "";
 
     let orderId = "";
+    let reason = "";
 
     if (contentType.includes("application/json")) {
       const body = await req.json();
       orderId = body.orderId || "";
+      reason = body.reason || "";
     } else {
       const formData = await req.formData();
       orderId = String(formData.get("orderId") || "");
+      reason = String(formData.get("reason") || "");
     }
 
     if (!orderId) {
@@ -229,7 +202,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await confirmOrderByOrderId({ orderId });
+    const result = await rejectOrderByOrderId({ orderId, reason });
 
     if (!result.ok) {
       return NextResponse.json(
@@ -238,19 +211,16 @@ export async function POST(req: Request) {
       );
     }
 
-    await deleteCache("admin:dashboard:summary");
-    await deleteCache("admin:analytics:summary");
-    await deleteCacheByPattern("sales:dashboard:*");
-
     return NextResponse.json({
-      message: "Order berhasil dikonfirmasi",
+      message: "Order berhasil ditolak",
       orderCode: result.orderCode,
     });
   } catch (error) {
-    console.error("CONFIRM_ORDER_POST_ERROR", error);
-    return NextResponse.json(
-      { message: "Gagal mengonfirmasi order" },
-      { status: 500 },
-    );
+    console.error("REJECT_ORDER_POST_ERROR", error);
+
+    const message =
+      error instanceof Error ? error.message : "Gagal menolak order";
+
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

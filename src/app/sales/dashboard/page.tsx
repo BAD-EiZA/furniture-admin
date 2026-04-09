@@ -1,10 +1,10 @@
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSalesDashboardSummary } from "@/lib/sales-dashboard-cache";
 import SalesOrderActionButtons from "@/components/sales-order-action-buttons";
 import { buildSalesInvoiceWhatsappMessage } from "@/lib/whatsapp-invoice";
+
 export default async function SalesDashboardPage() {
   const session = await getSession();
 
@@ -65,10 +65,12 @@ export default async function SalesDashboardPage() {
                 <th className="px-4 py-3">Aksi</th>
               </tr>
             </thead>
+
             <tbody>
               {recentOrders.map((order) => {
                 const item = order.items[0];
-                const invoicePdfUrl = `${process.env.APP_URL}/api/orders/invoice/${order.orderCode}`;
+                const appUrl = process.env.APP_URL || "";
+                const invoicePdfUrl = `${appUrl}/api/orders/invoice/${order.orderCode}`;
 
                 const whatsappInvoiceMessage =
                   order.invoice && order.status === "CONFIRMED"
@@ -87,9 +89,11 @@ export default async function SalesDashboardPage() {
                         whatsappInvoiceMessage,
                       )}`
                     : "";
+
                 return (
                   <tr key={order.id} className="border-t">
                     <td className="px-4 py-3">{order.orderCode}</td>
+
                     <td className="px-4 py-3">
                       <div>
                         <p className="font-medium">{order.customerNameDraft}</p>
@@ -98,13 +102,17 @@ export default async function SalesDashboardPage() {
                         </p>
                       </div>
                     </td>
+
                     <td className="px-4 py-3">
                       {item?.product.name} x {item?.quantity}
                     </td>
+
                     <td className="px-4 py-3">
                       Rp {Number(order.total).toLocaleString("id-ID")}
                     </td>
+
                     <td className="px-4 py-3">{order.status}</td>
+
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Link
@@ -134,25 +142,12 @@ export default async function SalesDashboardPage() {
                           </a>
                         ) : null}
 
-                        {order.status === "WAITING_CONFIRMATION" ? (
-                          <SalesOrderActionButtons
-                            orderId={order.id}
-                            orderCode={order.orderCode}
-                          />
-                        ) : null}
-
-                        {order.invoice && order.status === "CONFIRMED" ? (
-                          <form action="/api/orders/invoice-sent" method="POST">
-                            <input
-                              type="hidden"
-                              name="orderId"
-                              value={order.id}
-                            />
-                            <button className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700">
-                              Invoice Sent
-                            </button>
-                          </form>
-                        ) : null}
+                        <SalesOrderActionButtons
+                          orderId={order.id}
+                          orderCode={order.orderCode}
+                          status={order.status}
+                          hasInvoice={Boolean(order.invoice)}
+                        />
                       </div>
                     </td>
                   </tr>

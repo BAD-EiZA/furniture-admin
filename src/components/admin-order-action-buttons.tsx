@@ -8,14 +8,14 @@ type Props = {
   orderId: string;
   orderCode: string;
   status: string;
-  hasInvoice?: boolean;
+  hasInvoice: boolean;
 };
 
-export default function SalesOrderActionButtons({
+export default function AdminOrderActionButtons({
   orderId,
   orderCode,
   status,
-  hasInvoice = false,
+  hasInvoice,
 }: Props) {
   const router = useRouter();
   const [loadingType, setLoadingType] = useState<
@@ -101,7 +101,7 @@ export default function SalesOrderActionButtons({
         return;
       }
 
-      alert(`Invoice ${orderCode} berhasil ditandai terkirim`);
+      alert(`Invoice untuk ${orderCode} ditandai terkirim`);
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -112,14 +112,14 @@ export default function SalesOrderActionButtons({
   }
 
   return (
-    <>
-      {status === "WAITING_CONFIRMATION" ? (
+    <div className="mt-5 flex flex-wrap gap-4">
+      {status !== "CONFIRMED" && status !== "INVOICE_SENT" ? (
         <>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={loadingType !== ""}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-white disabled:opacity-60"
           >
             <CheckCircle className="h-4 w-4" />
             {loadingType === "confirm" ? "Memproses..." : "Confirm"}
@@ -129,7 +129,7 @@ export default function SalesOrderActionButtons({
             type="button"
             onClick={handleReject}
             disabled={loadingType !== ""}
-            className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white disabled:opacity-60"
           >
             <XCircle className="h-4 w-4" />
             {loadingType === "reject" ? "Memproses..." : "Reject"}
@@ -142,17 +142,17 @@ export default function SalesOrderActionButtons({
           type="button"
           onClick={handleInvoiceSent}
           disabled={loadingType !== ""}
-          className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+          className="rounded-xl bg-blue-600 px-5 py-3 text-white disabled:opacity-60"
         >
-          {loadingType === "invoice" ? "Memproses..." : "Invoice Sent"}
+          {loadingType === "invoice" ? "Memproses..." : "Tandai Invoice Sent"}
         </button>
       ) : null}
 
       {status === "INVOICE_SENT" ? (
-        <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-          Sudah Invoice Sent
+        <div className="rounded-xl bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-700">
+          Invoice sudah ditandai terkirim
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

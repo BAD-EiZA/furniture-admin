@@ -1,15 +1,9 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import {
-  CheckCircle,
-  FileText,
-  MapPin,
-  Phone,
-  User,
-  XCircle,
-} from "lucide-react";
+import { notFound } from "next/navigation";
+import { FileText, MapPin, Phone, User } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
+import AdminOrderActionButtons from "@/components/admin-order-action-buttons";
 
 function formatPaymentMethod(method: string) {
   if (method === "TRANSFER") return "Transfer / Bayar di Muka";
@@ -64,7 +58,7 @@ export default async function AdminOrderDetailPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-950">Detail Order</h1>
+          <h2 className="text-2xl font-bold">Detail Order</h2>
           <p className="mt-2 text-sm text-slate-500">
             Order Code: {order.orderCode}
           </p>
@@ -288,43 +282,12 @@ export default async function AdminOrderDetailPage({
           <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Aksi</h2>
 
-            <div className="mt-5 flex flex-wrap gap-4">
-              {order.status !== "CONFIRMED" &&
-              order.status !== "INVOICE_SENT" ? (
-                <>
-                  <form action="/api/orders/confirm" method="POST">
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <button className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-white">
-                      <CheckCircle className="h-4 w-4" />
-                      Confirm
-                    </button>
-                  </form>
-
-                  <form action="/api/orders/reject" method="POST">
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <button className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white">
-                      <XCircle className="h-4 w-4" />
-                      Reject
-                    </button>
-                  </form>
-                </>
-              ) : null}
-
-              {order.invoice && order.status === "CONFIRMED" ? (
-                <form action="/api/orders/invoice-sent" method="POST">
-                  <input type="hidden" name="orderId" value={order.id} />
-                  <button className="rounded-xl bg-blue-600 px-5 py-3 text-white">
-                    Tandai Invoice Sent
-                  </button>
-                </form>
-              ) : null}
-
-              {order.status === "INVOICE_SENT" ? (
-                <div className="rounded-xl bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-700">
-                  Invoice sudah ditandai terkirim
-                </div>
-              ) : null}
-            </div>
+            <AdminOrderActionButtons
+              orderId={order.id}
+              orderCode={order.orderCode}
+              status={order.status}
+              hasInvoice={Boolean(order.invoice)}
+            />
           </div>
         </div>
       </div>
