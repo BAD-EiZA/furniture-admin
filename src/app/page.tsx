@@ -1,13 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRight,
   Sparkles,
   MapPin,
   Phone,
   Mail,
   MessageCircle,
-  Store,
   ShieldCheck,
   PackageCheck,
   Handshake,
@@ -17,59 +15,12 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSiteSetting } from "@/lib/site-settings";
 import CartBadge from "@/components/cart-badge";
+import HomeLineupCarousel from "@/components/home-lineup-carousel";
 import {
   InstagramIcon,
   FacebookIcon,
   TikTokIcon,
 } from "@/components/brand-social-icons";
-
-function FeaturedCard({
-  title,
-  description,
-  href,
-  image,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  image?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group min-w-[240px] max-w-[240px] overflow-hidden rounded-[28px] border border-white/10 bg-white/95 p-3 shadow-xl transition hover:-translate-y-1"
-    >
-      <div className="relative aspect-[1/1] overflow-hidden rounded-[22px] bg-slate-100">
-        {image ? (
-          <img
-            src={image}
-            alt={title}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-400">
-            No image
-          </div>
-        )}
-      </div>
-
-      <div className="px-2 pb-2 pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-950">{title}</h3>
-            <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-              {description}
-            </p>
-          </div>
-
-          <div className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition group-hover:border-[#125EA9] group-hover:text-[#125EA9]">
-            <ArrowRight className="h-4 w-4" />
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 export default async function HomePage() {
   const setting = await getSiteSetting();
@@ -182,9 +133,9 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/90" />
 
         <div className="relative z-10">
-          <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3">
-              <div className="relative h-12 w-12 overflow-hidden rounded-xl bg-white/95 shadow-sm sm:h-14 sm:w-14">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-white/95 shadow-sm sm:h-14 sm:w-14">
                 <Image
                   src="/images/hirona-logo.png"
                   alt="Hirona Homeware Logo"
@@ -194,15 +145,17 @@ export default async function HomePage() {
                 />
               </div>
 
-              <div>
-                <p className="text-sm font-semibold tracking-[0.2em] text-white">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold tracking-[0.2em] text-white sm:text-sm">
                   HIRONA
                 </p>
-                <p className="text-xs text-white/60">HOMEWARE</p>
+                <p className="truncate text-[10px] text-white/60 sm:text-xs">
+                  HOMEWARE
+                </p>
               </div>
             </div>
 
-            <div className="hidden items-center gap-8 md:flex">
+            <div className="hidden items-center gap-6 lg:flex">
               <Link
                 href="/catalog"
                 className="text-sm text-white/90 hover:text-white"
@@ -238,33 +191,33 @@ export default async function HomePage() {
             <CartBadge />
           </nav>
 
-          <div className="mx-auto flex min-h-[700px] max-w-7xl flex-col items-center justify-center px-4 pb-40 pt-12 text-center sm:px-6 lg:px-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white/90 backdrop-blur">
+          <div className="mx-auto flex min-h-[620px] max-w-7xl flex-col items-center justify-center px-4 pb-28 pt-8 text-center sm:min-h-[700px] sm:px-6 sm:pb-36 lg:px-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs text-white/90 backdrop-blur sm:text-sm">
               <Sparkles className="h-4 w-4" />
               PT Hirona Inspirasi Nusantara
             </div>
 
-            <h1 className="mt-8 max-w-4xl text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 max-w-4xl text-3xl font-bold tracking-tight text-white sm:mt-8 sm:text-5xl lg:text-6xl">
               {setting.homepageHeadline ||
                 "Distributor alat rumah tangga dan perabot berkualitas untuk kebutuhan rumah, retailer, dan instansi di Kalimantan Timur."}
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-white/75 sm:text-lg">
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-white/75 sm:text-lg sm:leading-8">
               {setting.homepageSubheadline ||
                 "PT Hirona Inspirasi Nusantara menyediakan berbagai kebutuhan rumah tangga modern dengan distribusi yang efisien, produk fungsional, dan pelayanan profesional."}
             </p>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <div className="mt-8 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:flex-wrap">
               <Link
                 href="/catalog"
-                className="inline-flex items-center rounded-full bg-[#ed1c24] px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-[#d81820]"
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-br from-[#0e3d6c] via-[#125EA9] to-[#2E4FAE] px-7 py-3.5 text-sm font-semibold text-white transition sm:w-auto"
               >
                 Jelajahi Katalog
               </Link>
 
               <Link
                 href="/checkout"
-                className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
+                className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15 sm:w-auto"
               >
                 Lihat Keranjang
               </Link>
@@ -272,31 +225,15 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="relative z-20 mx-auto -mt-24 max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-          <div className="rounded-t-[36px] bg-transparent">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Lineup Produk</h2>
-              <Link
-                href="/catalog"
-                className="text-sm font-medium text-white/80 hover:text-white"
-              >
-                Lihat semua
-              </Link>
-            </div>
-
-            <div className="flex gap-5 overflow-x-auto pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              {lineupCards.map((card) => (
-                <FeaturedCard key={card.title} {...card} />
-              ))}
-            </div>
-          </div>
+        <div className="relative z-20 mx-auto -mt-16 max-w-7xl px-4 pb-10 sm:-mt-20 sm:px-6 lg:px-8">
+          <HomeLineupCarousel items={lineupCards} />
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-2">
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
           <div>
-            <h2 className="text-3xl font-bold text-slate-950">
+            <h2 className="text-2xl font-bold text-slate-950 sm:text-3xl">
               Tentang PT Hirona Inspirasi Nusantara
             </h2>
 
@@ -315,7 +252,7 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="rounded-[32px] bg-gradient-to-br from-[#0e3d6c] via-[#125EA9] to-[#2E4FAE] p-8 text-white shadow-xl">
+          <div className="rounded-[28px] bg-gradient-to-br from-[#0e3d6c] via-[#125EA9] to-[#2E4FAE] p-6 text-white shadow-xl sm:rounded-[32px] sm:p-8">
             <h3 className="text-xl font-semibold">Visi</h3>
             <p className="mt-3 leading-7 text-blue-100">
               Menjadi perusahaan distributor peralatan rumah tangga yang unggul,
@@ -335,7 +272,7 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm sm:rounded-[32px] sm:p-8">
           <h2 className="text-2xl font-bold text-slate-950">
             Nilai-Nilai Perusahaan
           </h2>
@@ -396,7 +333,7 @@ export default async function HomePage() {
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-950">
+          <h2 className="text-2xl font-bold text-slate-950 sm:text-3xl">
             Informasi Kontak
           </h2>
           <p className="mt-3 text-slate-500">
