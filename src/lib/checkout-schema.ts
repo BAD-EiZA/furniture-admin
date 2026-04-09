@@ -6,7 +6,7 @@ export const createOrderSchema = z.object({
       z.object({
         productId: z.string().min(1),
         quantity: z.coerce.number().int().min(1),
-      })
+      }),
     )
     .min(1),
 
@@ -15,13 +15,12 @@ export const createOrderSchema = z.object({
   customerPhone: z.string().min(8, "Nomor HP wajib diisi"),
   customerAddress: z.string().min(5, "Alamat lengkap wajib diisi"),
   customerDistrict: z.string().min(2, "Kecamatan wajib diisi"),
-  customerCity: z.enum([
-    "Samarinda",
-    "Balikpapan",
-    "Bontang",
-    "Sangatta",
-    "Bengalon",
-  ]),
+
+  deliveryAreaType: z.enum(["DALAM_KOTA", "LUAR_KOTA"], {
+    message: "Area pengiriman wajib dipilih",
+  }),
+
+  customerCity: z.string().min(2, "Kota wajib diisi"),
 
   paymentMethod: z.enum(["TRANSFER", "COD", "TEMPO"], {
     message: "Metode pembayaran wajib dipilih",

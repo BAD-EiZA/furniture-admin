@@ -7,7 +7,6 @@ import {
   FileText,
   MapPin,
   MessageCircle,
-  Phone,
   ShoppingBag,
   Truck,
   XCircle,
@@ -45,7 +44,7 @@ function getStatusUI(status: string) {
         cardClass: "bg-blue-50 border-blue-200",
         title: "Invoice Sudah Dikirim",
         description:
-          "Invoice telah ditandai sudah dikirim ke customer. Silakan cek WhatsApp atau hubungi sales jika diperlukan.",
+          "Invoice telah ditandai sudah dikirim. Silakan cek WhatsApp atau hubungi sales jika diperlukan.",
       };
 
     case "REJECTED":
@@ -84,6 +83,12 @@ function formatAdjustmentLabel(type: string) {
   return "Penyesuaian";
 }
 
+function formatDeliveryAreaType(type: string) {
+  if (type === "DALAM_KOTA") return "Dalam Kota";
+  if (type === "LUAR_KOTA") return "Luar Kota";
+  return type;
+}
+
 export default async function OrderStatusPage({
   params,
 }: {
@@ -107,7 +112,12 @@ export default async function OrderStatusPage({
       items: {
         include: {
           product: {
-            include: { medias: true },
+            include: {
+              medias: {
+                orderBy: { sortOrder: "asc" },
+                take: 1,
+              },
+            },
           },
         },
       },
@@ -122,13 +132,12 @@ export default async function OrderStatusPage({
 
   const statusUI = getStatusUI(order.status);
 
-  const whatsappOrderMessage = `Halo ${
-    order.sales.name
-  }, saya ingin menanyakan pesanan berikut:
+  const whatsappOrderMessage = `Halo ${order.sales.name}, saya ingin menanyakan pesanan berikut:
 
 Order Code: ${order.orderCode}
 Nama: ${order.customerNameDraft}
 No HP: ${order.customerPhoneDraft}
+Area Pengiriman: ${formatDeliveryAreaType(order.deliveryAreaType)}
 Kota: ${order.customerCityDraft}
 Metode Pembayaran: ${formatPaymentMethod(order.paymentMethod)}
 
@@ -144,8 +153,9 @@ Mohon bantuannya. Terima kasih.`;
     ? `/api/orders/invoice/${order.orderCode}`
     : "";
 
+  const appUrl = process.env.APP_URL || "";
   const whatsappInvoiceMessage =
-    order.invoice && order.sales.phone
+    order.invoice && order.customerPhoneDraft
       ? `Halo ${order.customerNameDraft},
 
 Berikut invoice untuk pesanan Anda.
@@ -155,14 +165,14 @@ Invoice: ${order.invoice.invoiceNumber}
 Total: Rp ${Number(order.total).toLocaleString("id-ID")}
 
 Silakan lihat invoice PDF melalui link berikut:
-${process.env.APP_URL || ""}/api/orders/invoice/${order.orderCode}
+${appUrl}/api/orders/invoice/${order.orderCode}
 
 Terima kasih.
 HIRONA HOMEWARE`
       : "";
 
   const whatsappInvoiceHref =
-    order.invoice && order.sales.phone
+    order.invoice && order.customerPhoneDraft
       ? `https://wa.me/${order.customerPhoneDraft.replace(/\D/g, "")}?text=${encodeURIComponent(
           whatsappInvoiceMessage,
         )}`
@@ -283,6 +293,12 @@ HIRONA HOMEWARE`
                     {order.customerAddressDraft}
                   </p>
                   <p className="mt-2 text-sm text-slate-500">
+                    Area:{" "}
+                    <span className="font-medium text-slate-700">
+                      {formatDeliveryAreaType(order.deliveryAreaType)}
+                    </span>
+                  </p>
+                  <p className="text-sm text-slate-500">
                     Kecamatan:{" "}
                     <span className="font-medium text-slate-700">
                       {order.customerDistrictDraft}

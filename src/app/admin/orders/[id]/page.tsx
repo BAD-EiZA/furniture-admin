@@ -24,6 +24,12 @@ function formatAdjustmentLabel(type: string) {
   return "Penyesuaian";
 }
 
+function formatDeliveryAreaType(type: string) {
+  if (type === "DALAM_KOTA") return "Dalam Kota";
+  if (type === "LUAR_KOTA") return "Luar Kota";
+  return type;
+}
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
@@ -91,6 +97,10 @@ export default async function AdminOrderDetailPage({
               <p>
                 <MapPin className="mr-2 inline h-4 w-4" />
                 {order.customerAddressDraft}
+              </p>
+              <p>
+                Area Pengiriman:{" "}
+                {formatDeliveryAreaType(order.deliveryAreaType)}
               </p>
               <p>Kecamatan: {order.customerDistrictDraft}</p>
               <p>Kota: {order.customerCityDraft}</p>

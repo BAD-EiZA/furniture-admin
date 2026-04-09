@@ -72,6 +72,8 @@ model Order {
   salesId               String
   status                OrderStatus @default(PENDING_PAYMENT)
 
+  deliveryAreaType String @default("DALAM_KOTA")
+
   paymentMethod   PaymentMethod  @default(TRANSFER)
   adjustmentType  AdjustmentType @default(NONE)
   adjustmentValue Decimal        @default(0) @db.Decimal(12, 2)
@@ -190,6 +192,7 @@ model Product {
   readyStock    Int     @default(0)
   allowPreOrder Boolean @default(true)
   pcsPerBal     Int     @default(24)
+  shippingFee   Decimal @default(0) @db.Decimal(12, 2)
 
   qrCodeValue String   @unique
   isActive    Boolean  @default(true)

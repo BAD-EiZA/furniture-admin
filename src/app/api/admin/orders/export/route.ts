@@ -2,293 +2,173 @@ import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 
 function formatPaymentMethod(method: string) {
-  if (method === "TRANSFER") return "Transfer";
+  if (method === "TRANSFER") return "Transfer / Bayar di Muka";
   if (method === "COD") return "COD";
   if (method === "TEMPO") return "Tempo";
   return method;
 }
 
-function formatAdjustmentType(type: string) {
-  if (type === "DISCOUNT") return "Discount";
-  if (type === "SURCHARGE") return "Surcharge";
-  return "None";
+function formatAdjustmentLabel(type: string) {
+  if (type === "DISCOUNT") return "Potongan Pembayaran";
+  if (type === "SURCHARGE") return "Biaya Tambahan";
+  return "Penyesuaian";
 }
 
-export async function GET(req: Request) {
-  try {
-    const session = await getSession();
+function formatDeliveryAreaType(type: string) {
+  if (type === "DALAM_KOTA") return "Dalam Kota";
+  if (type === "LUAR_KOTA") return "Luar Kota";
+  return type;
+}
 
-    if (!session || !["SUPER_ADMIN", "ADMIN"].includes(session.role)) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q")?.trim() || "";
-    const status = searchParams.get("status")?.trim() || "";
-    const paymentMethod = searchParams.get("paymentMethod")?.trim() || "";
-    const salesId = searchParams.get("salesId")?.trim() || "";
-    const hasPo = searchParams.get("hasPo")?.trim() || "";
-    const dateFrom = searchParams.get("dateFrom")?.trim() || "";
-    const dateTo = searchParams.get("dateTo")?.trim() || "";
-
-    const where = {
-      ...(q
-        ? {
-            OR: [
-              { orderCode: { contains: q, mode: "insensitive" as const } },
-              {
-                customerNameDraft: {
-                  contains: q,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                customerPhoneDraft: {
-                  contains: q,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                customerAddressDraft: {
-                  contains: q,
-                  mode: "insensitive" as const,
-                },
-              },
-            ],
-          }
-        : {}),
-      ...(status ? { status: status as any } : {}),
-      ...(paymentMethod ? { paymentMethod: paymentMethod as any } : {}),
-      ...(salesId ? { salesId } : {}),
-      ...(dateFrom || dateTo
-        ? {
-            createdAt: {
-              ...(dateFrom
-                ? { gte: new Date(`${dateFrom}T00:00:00.000Z`) }
-                : {}),
-              ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
-            },
-          }
-        : {}),
-      ...(hasPo === "true"
-        ? {
-            items: {
-              some: {
-                poQty: {
-                  gt: 0,
-                },
-              },
-            },
-          }
-        : {}),
-    };
-
-    const orders = await prisma.order.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        sales: true,
-        invoice: true,
-        paymentProof: true,
-        items: {
-          include: {
-            product: true,
-          },
+export async function GET() {
+  const orders = await prisma.order.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      sales: true,
+      items: {
+        include: {
+          product: true,
         },
       },
-    });
+    },
+  });
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Orders");
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Orders");
 
-    sheet.columns = [
-      { header: "Order Code", key: "orderCode", width: 22 },
-      { header: "Tanggal Order", key: "createdAt", width: 24 },
-      { header: "Status", key: "status", width: 20 },
+  sheet.columns = [
+    { header: "Order Code", key: "orderCode", width: 18 },
+    { header: "Tanggal", key: "createdAt", width: 20 },
+    { header: "Status", key: "status", width: 20 },
 
-      { header: "Customer", key: "customerName", width: 24 },
-      { header: "No HP", key: "customerPhone", width: 18 },
-      { header: "Alamat", key: "customerAddress", width: 35 },
-      { header: "Kecamatan", key: "customerDistrict", width: 20 },
-      { header: "Kota", key: "customerCity", width: 16 },
+    { header: "Customer", key: "customerName", width: 24 },
+    { header: "Phone", key: "customerPhone", width: 18 },
+    { header: "Alamat", key: "customerAddress", width: 34 },
+    { header: "Kecamatan", key: "customerDistrict", width: 18 },
+    { header: "Kota", key: "customerCity", width: 18 },
+    { header: "Area Pengiriman", key: "deliveryAreaType", width: 18 },
 
-      { header: "Sales", key: "salesName", width: 22 },
-      { header: "Payment Method", key: "paymentMethod", width: 18 },
-      { header: "Shipping / Item", key: "shippingCostPerItem", width: 16 },
-      { header: "Discount %", key: "discountPercent", width: 14 },
+    { header: "Sales", key: "salesName", width: 20 },
+    { header: "Payment Method", key: "paymentMethod", width: 22 },
 
-      { header: "Product", key: "productName", width: 28 },
-      { header: "Tier Harga", key: "priceTierLabel", width: 18 },
-      { header: "Qty", key: "quantity", width: 10 },
-      { header: "Ready Qty", key: "readyQty", width: 12 },
-      { header: "PO Qty", key: "poQty", width: 10 },
-      { header: "Harga Satuan", key: "unitPrice", width: 18 },
-      { header: "Subtotal Item", key: "itemSubtotal", width: 18 },
+    { header: "Produk", key: "productName", width: 28 },
+    { header: "Qty", key: "quantity", width: 10 },
+    { header: "Ready Qty", key: "readyQty", width: 12 },
+    { header: "PO Qty", key: "poQty", width: 10 },
 
-      { header: "Order Subtotal", key: "orderSubtotal", width: 18 },
-      { header: "Shipping Total", key: "orderShipping", width: 18 },
-      { header: "Adjustment Type", key: "adjustmentType", width: 18 },
-      { header: "Adjustment Value", key: "adjustmentValue", width: 18 },
-      { header: "Order Total", key: "orderTotal", width: 18 },
+    { header: "Harga Satuan Final", key: "unitPrice", width: 18 },
+    { header: "Shipping / Item", key: "shippingCostPerItem", width: 16 },
+    { header: "Discount %", key: "discountPercent", width: 14 },
+    { header: "Label Harga", key: "priceTierLabel", width: 20 },
+    { header: "Subtotal Item", key: "itemSubtotal", width: 18 },
 
-      { header: "Invoice Number", key: "invoiceNumber", width: 22 },
-      { header: "Bukti Pembayaran", key: "paymentProof", width: 40 },
-    ];
+    { header: "Order Subtotal", key: "orderSubtotal", width: 18 },
+    { header: "Shipping Total", key: "orderShipping", width: 18 },
+    { header: "Adjustment Label", key: "adjustmentLabel", width: 20 },
+    { header: "Adjustment Value", key: "adjustmentValue", width: 18 },
+    { header: "Total Order", key: "orderTotal", width: 18 },
+    { header: "Payment Note", key: "paymentNote", width: 24 },
+  ];
 
-    for (const order of orders) {
-      if (order.items.length === 0) {
-        sheet.addRow({
-          orderCode: order.orderCode,
-          createdAt: order.createdAt.toISOString(),
-          status: order.status,
-          customerName: order.customerNameDraft,
-          customerPhone: order.customerPhoneDraft,
-          customerAddress: order.customerAddressDraft,
-          salesName: order.sales.name,
-          paymentMethod: formatPaymentMethod(order.paymentMethod),
-          productName: "",
-          priceTierLabel: "",
-          quantity: 0,
-          readyQty: 0,
-          poQty: 0,
-          unitPrice: 0,
-          itemSubtotal: 0,
-          orderSubtotal: Number(order.subtotal),
-          customerDistrict: order.customerDistrictDraft,
-          customerCity: order.customerCityDraft,
-          shippingCostPerItem: 0,
-          discountPercent: 0,
-          orderShipping: Number(order.shippingCost || 0),
-          adjustmentType: formatAdjustmentType(order.adjustmentType),
-          adjustmentValue: Number(order.adjustmentValue),
-          orderTotal: Number(order.total),
-          invoiceNumber: order.invoice?.invoiceNumber || "",
-          paymentProof: order.paymentProof?.fileUrl || "",
-        });
-        continue;
-      }
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFEFF4FF" },
+  };
 
-      for (const item of order.items) {
-        sheet.addRow({
-          orderCode: order.orderCode,
-          createdAt: order.createdAt.toISOString(),
-          status: order.status,
-
-          customerName: order.customerNameDraft,
-          customerPhone: order.customerPhoneDraft,
-          customerAddress: order.customerAddressDraft,
-
-          salesName: order.sales.name,
-          customerDistrict: order.customerDistrictDraft,
-          customerCity: order.customerCityDraft,
-          shippingCostPerItem: Number(item.shippingCostPerItem || 0),
-          discountPercent: Number(item.discountPercent || 0) * 100,
-          orderShipping: Number(order.shippingCost || 0),
-          paymentMethod: formatPaymentMethod(order.paymentMethod),
-
-          productName: item.product.name,
-          priceTierLabel: item.priceTierLabel || "",
-          quantity: item.quantity,
-          readyQty: item.readyQty,
-          poQty: item.poQty,
-          unitPrice: Number(item.unitPrice),
-          itemSubtotal: Number(item.subtotal),
-
-          orderSubtotal: Number(order.subtotal),
-          adjustmentType: formatAdjustmentType(order.adjustmentType),
-          adjustmentValue: Number(order.adjustmentValue),
-          orderTotal: Number(order.total),
-
-          invoiceNumber: order.invoice?.invoiceNumber || "",
-          paymentProof: order.paymentProof?.fileUrl || "",
-        });
-      }
+  for (const order of orders) {
+    if (order.items.length === 0) {
+      sheet.addRow({
+        orderCode: order.orderCode,
+        createdAt: order.createdAt.toLocaleString("id-ID"),
+        status: order.status,
+        customerName: order.customerNameDraft,
+        customerPhone: order.customerPhoneDraft,
+        customerAddress: order.customerAddressDraft,
+        customerDistrict: order.customerDistrictDraft,
+        customerCity: order.customerCityDraft,
+        deliveryAreaType: formatDeliveryAreaType(order.deliveryAreaType),
+        salesName: order.sales.name,
+        paymentMethod: formatPaymentMethod(order.paymentMethod),
+        productName: "-",
+        quantity: 0,
+        readyQty: 0,
+        poQty: 0,
+        unitPrice: 0,
+        shippingCostPerItem: 0,
+        discountPercent: 0,
+        priceTierLabel: "-",
+        itemSubtotal: 0,
+        orderSubtotal: Number(order.subtotal),
+        orderShipping: Number(order.shippingCost || 0),
+        adjustmentLabel: formatAdjustmentLabel(order.adjustmentType),
+        adjustmentValue: Number(order.adjustmentValue),
+        orderTotal: Number(order.total),
+        paymentNote: order.paymentNote || "",
+      });
+      continue;
     }
 
-    // Styling
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    headerRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "0F172A" },
-    };
-    headerRow.alignment = {
-      vertical: "middle",
-      horizontal: "center",
-      wrapText: true,
-    };
-
-    sheet.eachRow((row, rowNumber) => {
-      row.alignment = { vertical: "middle", wrapText: true };
-
-      if (rowNumber > 1) {
-        const statusCell = row.getCell("status");
-
-        if (statusCell.value === "CONFIRMED") {
-          statusCell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "DCFCE7" },
-          };
-        } else if (statusCell.value === "REJECTED") {
-          statusCell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FEE2E2" },
-          };
-        } else if (statusCell.value === "WAITING_CONFIRMATION") {
-          statusCell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FEF3C7" },
-          };
-        }
-      }
-    });
-
-    sheet.views = [{ state: "frozen", ySplit: 1 }];
-    sheet.autoFilter = {
-      from: "A1",
-      to: "Y1",
-    };
-
-    const buffer = await workbook.xlsx.writeBuffer();
-
-    await writeAuditLog({
-      action: "EXPORT_ORDERS",
-      entityType: "ORDER",
-      description: `Export order ke Excel dengan filter lanjutan`,
-      afterData: {
-        totalOrders: orders.length,
-        q,
-        status,
-        paymentMethod,
-        salesId,
-        hasPo,
-        dateFrom,
-        dateTo,
-      },
-    });
-
-    return new NextResponse(Buffer.from(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="orders-export.xlsx"`,
-      },
-    });
-  } catch (error) {
-    console.error("EXPORT_ORDERS_ERROR", error);
-
-    return NextResponse.json(
-      { message: "Gagal export order" },
-      { status: 500 },
-    );
+    for (const item of order.items) {
+      sheet.addRow({
+        orderCode: order.orderCode,
+        createdAt: order.createdAt.toLocaleString("id-ID"),
+        status: order.status,
+        customerName: order.customerNameDraft,
+        customerPhone: order.customerPhoneDraft,
+        customerAddress: order.customerAddressDraft,
+        customerDistrict: order.customerDistrictDraft,
+        customerCity: order.customerCityDraft,
+        deliveryAreaType: formatDeliveryAreaType(order.deliveryAreaType),
+        salesName: order.sales.name,
+        paymentMethod: formatPaymentMethod(order.paymentMethod),
+        productName: item.product.name,
+        quantity: item.quantity,
+        readyQty: item.readyQty,
+        poQty: item.poQty,
+        unitPrice: Number(item.unitPrice),
+        shippingCostPerItem: Number(item.shippingCostPerItem || 0),
+        discountPercent: Number(item.discountPercent || 0) * 100,
+        priceTierLabel: item.priceTierLabel || "",
+        itemSubtotal: Number(item.subtotal),
+        orderSubtotal: Number(order.subtotal),
+        orderShipping: Number(order.shippingCost || 0),
+        adjustmentLabel: formatAdjustmentLabel(order.adjustmentType),
+        adjustmentValue: Number(order.adjustmentValue),
+        orderTotal: Number(order.total),
+        paymentNote: order.paymentNote || "",
+      });
+    }
   }
+
+  sheet.autoFilter = {
+    from: "A1",
+    to: "Z1",
+  };
+
+  for (const row of sheet.getRows(2, sheet.rowCount - 1) || []) {
+    row.alignment = { vertical: "middle" };
+  }
+
+  await writeAuditLog({
+    action: "EXPORT_ORDERS",
+    entityType: "ORDER",
+    description: "Export orders ke Excel",
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  return new NextResponse(Buffer.from(buffer), {
+    headers: {
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="orders-export.xlsx"`,
+    },
+  });
 }

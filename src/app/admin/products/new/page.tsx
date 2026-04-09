@@ -19,6 +19,10 @@ export default function NewProductPage() {
           stock: 0,
           readyStock: 0,
           allowPreOrder: true,
+          pcsPerBal: 24,
+          shippingFee: 0,
+          isActive: true,
+          isFeatured: false,
           medias: [],
           tierPrices: [
             {

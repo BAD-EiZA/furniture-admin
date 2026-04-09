@@ -30,7 +30,8 @@ export default async function EditProductPage({
       <div>
         <h2 className="text-2xl font-bold">Edit Produk</h2>
         <p className="text-sm text-slate-500">
-          Perbarui data barang, media katalog, dan stok
+          Perbarui data barang, media katalog, stok, diskon bal, dan ongkir
+          produk
         </p>
       </div>
 
@@ -44,6 +45,10 @@ export default async function EditProductPage({
           stock: product.stock,
           readyStock: product.readyStock,
           allowPreOrder: product.allowPreOrder,
+          pcsPerBal: product.pcsPerBal,
+          shippingFee: Number(product.shippingFee || 0),
+          isActive: product.isActive,
+          isFeatured: product.isFeatured,
           medias: product.medias.map((media) => ({
             fileUrl: media.fileUrl,
             fileKey: media.fileKey || "",

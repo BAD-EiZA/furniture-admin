@@ -26,6 +26,10 @@ type ProductFormValues = {
   stock: number;
   readyStock: number;
   allowPreOrder: boolean;
+  pcsPerBal: number;
+  shippingFee: number;
+  isActive: boolean;
+  isFeatured: boolean;
   medias: MediaItem[];
   tierPrices: TierPriceItem[];
 };
@@ -36,11 +40,7 @@ type Props = {
   initialValues: ProductFormValues;
 };
 
-export default function ProductForm({
-  mode,
-  productId,
-  initialValues,
-}: Props) {
+export default function ProductForm({ mode, productId, initialValues }: Props) {
   const router = useRouter();
 
   const [values, setValues] = useState<ProductFormValues>(initialValues);
@@ -50,7 +50,7 @@ export default function ProductForm({
 
   function updateField<K extends keyof ProductFormValues>(
     key: K,
-    value: ProductFormValues[K]
+    value: ProductFormValues[K],
   ) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
@@ -72,12 +72,12 @@ export default function ProductForm({
   function updateTier(
     index: number,
     key: keyof TierPriceItem,
-    value: string | number
+    value: string | number,
   ) {
     setValues((prev) => ({
       ...prev,
       tierPrices: prev.tierPrices.map((tier, i) =>
-        i === index ? { ...tier, [key]: value } : tier
+        i === index ? { ...tier, [key]: value } : tier,
       ),
     }));
   }
@@ -234,11 +234,84 @@ export default function ProductForm({
         </div>
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-4">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Pcs per Bal
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={values.pcsPerBal}
+            onChange={(e) =>
+              updateField("pcsPerBal", Number(e.target.value || 1))
+            }
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Ongkir per Produk
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={values.shippingFee}
+            onChange={(e) =>
+              updateField("shippingFee", Number(e.target.value || 0))
+            }
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Status Produk
+          </label>
+          <select
+            value={values.isActive ? "true" : "false"}
+            onChange={(e) => updateField("isActive", e.target.value === "true")}
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          >
+            <option value="true">Aktif</option>
+            <option value="false">Nonaktif</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Produk Unggulan
+          </label>
+          <select
+            value={values.isFeatured ? "true" : "false"}
+            onChange={(e) =>
+              updateField("isFeatured", e.target.value === "true")
+            }
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          >
+            <option value="false">Tidak</option>
+            <option value="true">Ya</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[#dbe8f7] bg-[#f7fbff] p-5">
+        <h3 className="text-lg font-semibold text-slate-900">
+          Informasi Ongkir Produk
+        </h3>
+        <p className="mt-2 text-sm text-slate-500">
+          Ongkir per produk dipakai saat customer memilih pengiriman{" "}
+          <span className="font-medium text-slate-700">Luar Kota</span>. Jika
+          customer memilih{" "}
+          <span className="font-medium text-slate-700">Dalam Kota</span>, maka
+          ongkir otomatis 0.
+        </p>
+      </div>
+
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Media Produk
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900">Media Produk</h3>
         </div>
 
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
@@ -258,7 +331,7 @@ export default function ProductForm({
                 fileUrl: file.url,
                 fileKey: file.key,
                 type: file.type.startsWith("video") ? "VIDEO" : "IMAGE",
-                sortOrder: values.medias.length + index,
+                sortOrder: values.medias.length + index + 1,
               })) as MediaItem[];
 
               setValues((prev) => ({
@@ -316,9 +389,7 @@ export default function ProductForm({
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Tier Pricing
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900">Tier Pricing</h3>
 
           <button
             type="button"

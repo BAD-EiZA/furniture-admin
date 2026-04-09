@@ -1,11 +1,3 @@
-export const CITY_SHIPPING_COST: Record<string, number> = {
-  Samarinda: 0,
-  Balikpapan: 15000,
-  Bontang: 18000,
-  Sangatta: 20000,
-  Bengalon: 22000,
-};
-
 export function getBulkDiscountPercent(quantity: number, pcsPerBal = 24) {
   if (pcsPerBal > 0 && quantity >= pcsPerBal) {
     return 0.2;
@@ -43,10 +35,6 @@ export function getUnitPriceAfterBulkDiscount(
     discountedUnitPrice,
     discountLabel: getDiscountLabel(quantity, pcsPerBal),
   };
-}
-
-export function getShippingCostPerItem(city: string) {
-  return CITY_SHIPPING_COST[city] || 0;
 }
 
 export function getPaymentAdjustment(
@@ -92,4 +80,15 @@ export function splitReadyAndPO(quantity: number, readyStock: number) {
     readyQty: Math.max(0, readyStock),
     poQty: quantity - Math.max(0, readyStock),
   };
+}
+
+export function getShippingCostPerItem(params: {
+  deliveryAreaType: "DALAM_KOTA" | "LUAR_KOTA";
+  productShippingFee: number;
+}) {
+  if (params.deliveryAreaType === "DALAM_KOTA") {
+    return 0;
+  }
+
+  return params.productShippingFee || 0;
 }

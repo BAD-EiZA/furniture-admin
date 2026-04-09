@@ -8,6 +8,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { updateProductSchema } from "@/lib/product-schema";
 import { createStockHistory } from "@/lib/stock-history";
 import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
+
 const mediaSchema = z.object({
   fileUrl: z.string().url(),
   fileKey: z.string().optional(),
@@ -33,6 +34,9 @@ export async function GET(
       include: {
         medias: {
           orderBy: { sortOrder: "asc" },
+        },
+        tierPrices: {
+          orderBy: { minQty: "asc" },
         },
       },
     });
@@ -101,6 +105,10 @@ export async function PUT(
       stock,
       readyStock,
       allowPreOrder,
+      pcsPerBal,
+      shippingFee,
+      isActive,
+      isFeatured,
       medias,
       tierPrices,
     } = parsed.data;
@@ -108,6 +116,20 @@ export async function PUT(
     if (readyStock > stock) {
       return NextResponse.json(
         { message: "Ready stock tidak boleh lebih besar dari total stock" },
+        { status: 400 },
+      );
+    }
+
+    if (pcsPerBal < 1) {
+      return NextResponse.json(
+        { message: "Pcs per bal minimal 1" },
+        { status: 400 },
+      );
+    }
+
+    if (shippingFee < 0) {
+      return NextResponse.json(
+        { message: "Ongkir produk tidak boleh negatif" },
         { status: 400 },
       );
     }
@@ -147,9 +169,18 @@ export async function PUT(
         stock,
         readyStock,
         allowPreOrder,
+        pcsPerBal,
+        shippingFee,
+        isActive,
+        isFeatured,
         medias: {
           deleteMany: {},
-          create: medias,
+          create: medias.map((item) => ({
+            fileUrl: item.fileUrl,
+            fileKey: item.fileKey || null,
+            type: item.type,
+            sortOrder: item.sortOrder,
+          })),
         },
         tierPrices: {
           deleteMany: {},

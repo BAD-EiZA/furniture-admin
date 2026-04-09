@@ -16,6 +16,12 @@ function formatAdjustmentLabel(type: string) {
   return "Penyesuaian";
 }
 
+function formatDeliveryAreaType(type: string) {
+  if (type === "DALAM_KOTA") return "Dalam Kota";
+  if (type === "LUAR_KOTA") return "Luar Kota";
+  return type;
+}
+
 export async function GET(
   _: Request,
   { params }: { params: Promise<{ orderCode: string }> },
@@ -43,7 +49,7 @@ export async function GET(
   }
 
   const pdfDoc = await PDFDocument.create();
-  let page = pdfDoc.addPage([595, 842]);
+  const page = pdfDoc.addPage([595, 842]);
 
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -86,9 +92,11 @@ export async function GET(
       const textWidth = fontRegular.widthOfTextAtSize(testLine, size);
 
       if (textWidth > maxWidth) {
-        drawText(line, x, currentY, { size });
+        if (line) {
+          drawText(line, x, currentY, { size });
+          currentY -= lineHeight;
+        }
         line = word;
-        currentY -= lineHeight;
       } else {
         line = testLine;
       }
@@ -105,13 +113,13 @@ export async function GET(
   let y = height - 50;
   const left = 40;
 
-  // Header
   drawText("HIRONA HOMEWARE", left, y, {
     size: 22,
     bold: true,
     color: rgb(0.07, 0.37, 0.66),
   });
   y -= 26;
+
   drawText("INVOICE", left, y, {
     size: 16,
     bold: true,
@@ -122,7 +130,9 @@ export async function GET(
     size: 11,
     bold: true,
   });
-  drawText(`Order Code: ${order.orderCode}`, 380, height - 66, { size: 11 });
+  drawText(`Order Code: ${order.orderCode}`, 380, height - 66, {
+    size: 11,
+  });
   drawText(
     `Tanggal: ${new Date(order.invoice.issuedAt).toLocaleDateString("id-ID")}`,
     380,
@@ -130,7 +140,6 @@ export async function GET(
     { size: 11 },
   );
 
-  // Divider
   y -= 24;
   page.drawLine({
     start: { x: left, y },
@@ -141,7 +150,6 @@ export async function GET(
 
   y -= 28;
 
-  // Customer block
   drawText("Ditagihkan kepada:", left, y, { size: 12, bold: true });
   y -= 18;
   drawText(order.customerNameDraft, left, y, { size: 11, bold: true });
@@ -153,6 +161,13 @@ export async function GET(
   y = drawWrappedText(order.customerAddressDraft, left, y, 240, 14, 10);
 
   y -= 4;
+  drawText(
+    `Area Pengiriman: ${formatDeliveryAreaType(order.deliveryAreaType)}`,
+    left,
+    y,
+    { size: 11 },
+  );
+  y -= 16;
   drawText(`Kecamatan: ${order.customerDistrictDraft}`, left, y, { size: 11 });
   y -= 16;
   drawText(`Kota: ${order.customerCityDraft}`, left, y, { size: 11 });
@@ -164,22 +179,21 @@ export async function GET(
     { size: 11 },
   );
 
-  // Sales block
   let rightY = height - 150;
   drawText("Sales:", 380, rightY, { size: 12, bold: true });
   rightY -= 18;
   drawText(order.sales.name, 380, rightY, { size: 11, bold: true });
   rightY -= 16;
+
   if (order.sales.phone) {
     drawText(order.sales.phone, 380, rightY, { size: 11 });
     rightY -= 16;
   }
+
   drawText(order.sales.email, 380, rightY, { size: 11 });
 
-  // Table start
   y -= 38;
 
-  // Table header
   const tableTop = y;
   const col1 = left;
   const col2 = 280;
@@ -254,7 +268,6 @@ export async function GET(
     y -= rowHeight + 8;
   }
 
-  // Summary
   y -= 10;
   page.drawLine({
     start: { x: 340, y },
@@ -312,7 +325,6 @@ export async function GET(
     color: rgb(0.07, 0.37, 0.66),
   });
 
-  // Footer
   y -= 40;
   drawText("Terima kasih telah berbelanja di HIRONA HOMEWARE.", left, y, {
     size: 10,

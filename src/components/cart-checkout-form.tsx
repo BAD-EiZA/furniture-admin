@@ -5,7 +5,14 @@ import Link from "next/link";
 import { UploadButton } from "@uploadthing/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, Copy, Landmark, QrCode } from "lucide-react";
+import {
+  AlertTriangle,
+  Copy,
+  Landmark,
+  QrCode,
+  Truck,
+  MapPinned,
+} from "lucide-react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { useCart } from "@/hooks/use-cart";
@@ -25,6 +32,7 @@ type ProductSummary = {
   readyStock: number;
   allowPreOrder: boolean;
   pcsPerBal: number;
+  shippingFee: number;
   medias: {
     fileUrl: string;
     type: "IMAGE" | "VIDEO";
@@ -51,14 +59,6 @@ const CITY_OPTIONS = [
   "Sangatta",
   "Bengalon",
 ] as const;
-
-const CITY_SHIPPING_COST: Record<string, number> = {
-  Samarinda: 0,
-  Balikpapan: 15000,
-  Bontang: 18000,
-  Sangatta: 20000,
-  Bengalon: 22000,
-};
 
 function getBulkDiscountPercent(quantity: number, pcsPerBal = 24) {
   if (pcsPerBal > 0 && quantity >= pcsPerBal) return 0.2;
@@ -89,9 +89,14 @@ export default function CartCheckoutForm({
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerDistrict, setCustomerDistrict] = useState("");
-  const [customerCity, setCustomerCity] = useState<
+  const [customerCityDropdown, setCustomerCityDropdown] = useState<
     (typeof CITY_OPTIONS)[number] | ""
   >("");
+  const [customerCityText, setCustomerCityText] = useState("");
+  const [deliveryAreaType, setDeliveryAreaType] = useState<
+    "DALAM_KOTA" | "LUAR_KOTA"
+  >("DALAM_KOTA");
+
   const [salesId, setSalesId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
     "TRANSFER" | "COD" | "TEMPO" | ""
@@ -138,11 +143,10 @@ export default function CartCheckoutForm({
     loadProducts();
   }, [ready, items]);
 
-  const mergedItems = useMemo(() => {
-    const shippingPerItem = customerCity
-      ? CITY_SHIPPING_COST[customerCity] || 0
-      : 0;
+  const customerCity =
+    deliveryAreaType === "DALAM_KOTA" ? customerCityDropdown : customerCityText;
 
+  const mergedItems = useMemo(() => {
     return items.map((cartItem) => {
       const product = products.find((p) => p.id === cartItem.productId);
 
@@ -157,6 +161,11 @@ export default function CartCheckoutForm({
 
       const readyQty = Math.min(cartItem.quantity, product?.readyStock || 0);
       const poQty = Math.max(0, cartItem.quantity - readyQty);
+
+      const shippingPerItem =
+        deliveryAreaType === "DALAM_KOTA"
+          ? 0
+          : Number(product?.shippingFee || 0);
 
       const subtotal =
         (discountedUnitPrice + shippingPerItem) * cartItem.quantity;
@@ -173,7 +182,7 @@ export default function CartCheckoutForm({
         subtotal,
       };
     });
-  }, [items, products, customerCity]);
+  }, [items, products, deliveryAreaType]);
 
   const hasPoItems = useMemo(
     () => mergedItems.some((item) => item.poQty > 0),
@@ -251,8 +260,8 @@ export default function CartCheckoutForm({
         return;
       }
 
-      if (!customerCity) {
-        setError("Kota wajib dipilih");
+      if (!customerCity.trim()) {
+        setError("Kota wajib diisi");
         return;
       }
 
@@ -289,6 +298,7 @@ export default function CartCheckoutForm({
         customerAddress,
         customerDistrict,
         customerCity,
+        deliveryAreaType,
         paymentMethod,
         paymentNote,
         acceptPoItems,
@@ -514,6 +524,47 @@ export default function CartCheckoutForm({
           </div>
         ) : null}
 
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex items-center gap-2">
+            <MapPinned className="h-4 w-4 text-[#125EA9]" />
+            <p className="font-medium text-slate-900">Area Pengiriman</p>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
+              <input
+                type="radio"
+                name="deliveryAreaType"
+                checked={deliveryAreaType === "DALAM_KOTA"}
+                onChange={() => setDeliveryAreaType("DALAM_KOTA")}
+                className="mt-1"
+              />
+              <span>
+                <span className="block font-medium text-slate-900">
+                  Dalam Kota
+                </span>
+                Ongkir 0 untuk semua produk
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
+              <input
+                type="radio"
+                name="deliveryAreaType"
+                checked={deliveryAreaType === "LUAR_KOTA"}
+                onChange={() => setDeliveryAreaType("LUAR_KOTA")}
+                className="mt-1"
+              />
+              <span>
+                <span className="block font-medium text-slate-900">
+                  Luar Kota
+                </span>
+                Ongkir dihitung per produk
+              </span>
+            </label>
+          </div>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -572,22 +623,33 @@ export default function CartCheckoutForm({
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Kota *
             </label>
-            <select
-              value={customerCity}
-              onChange={(e) =>
-                setCustomerCity(
-                  e.target.value as (typeof CITY_OPTIONS)[number] | "",
-                )
-              }
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
-            >
-              <option value="">Pilih kota</option>
-              {CITY_OPTIONS.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
+
+            {deliveryAreaType === "DALAM_KOTA" ? (
+              <select
+                value={customerCityDropdown}
+                onChange={(e) =>
+                  setCustomerCityDropdown(
+                    e.target.value as (typeof CITY_OPTIONS)[number] | "",
+                  )
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
+              >
+                <option value="">Pilih kota</option>
+                {CITY_OPTIONS.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={customerCityText}
+                onChange={(e) => setCustomerCityText(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
+                placeholder="Masukkan kota"
+              />
+            )}
           </div>
         </div>
 

@@ -3,16 +3,12 @@ import { nanoid } from "nanoid";
 
 import { prisma } from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/checkout-schema";
-import { generateOrderCode } from "@/lib/order";
 import {
   getPaymentAdjustment,
   getShippingCostPerItem,
   getUnitPriceAfterBulkDiscount,
   splitReadyAndPO,
 } from "@/lib/checkout-pricing";
-import { sendOrderToSalesEmail } from "@/lib/email";
-import { addOrderTimeline } from "@/lib/order-timeline";
-import { deleteCache, deleteCacheByPattern } from "@/lib/cache";
 
 export async function POST(req: Request) {
   try {
@@ -37,40 +33,18 @@ export async function POST(req: Request) {
       customerAddress,
       customerDistrict,
       customerCity,
+      deliveryAreaType,
       paymentMethod,
       paymentNote,
       paymentProof,
       acceptPoItems,
     } = parsed.data;
 
-    if (paymentMethod === "TRANSFER" && !paymentProof) {
-      return NextResponse.json(
-        { message: "Bukti pembayaran wajib untuk metode transfer" },
-        { status: 400 },
-      );
-    }
-
-    const sales = await prisma.user.findUnique({
-      where: { id: salesId },
-    });
-
-    if (!sales || sales.role !== "SALES" || !sales.isActive) {
-      return NextResponse.json(
-        { message: "Sales tidak valid" },
-        { status: 400 },
-      );
-    }
-
     const productIds = items.map((item) => item.productId);
 
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
-      },
-      include: {
-        tierPrices: {
-          orderBy: { minQty: "asc" },
-        },
       },
     });
 
@@ -120,7 +94,10 @@ export async function POST(req: Request) {
         );
       }
 
-      const shippingPerItem = getShippingCostPerItem(customerCity);
+      const shippingPerItem = getShippingCostPerItem({
+        deliveryAreaType,
+        productShippingFee: Number(product.shippingFee || 0),
+      });
 
       const { discountPercent, discountedUnitPrice, discountLabel } =
         getUnitPriceAfterBulkDiscount(
@@ -159,10 +136,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const adjustment = getPaymentAdjustment(subtotal, paymentMethod);
-    const orderCode = generateOrderCode();
+    const adjustment = getPaymentAdjustment(
+      subtotal,
+      paymentMethod as "TRANSFER" | "COD" | "TEMPO",
+    );
 
-    const order = await prisma.order.create({
+    const orderCode = `ORD-${nanoid(10).toUpperCase()}`;
+
+    const createdOrder = await prisma.order.create({
       data: {
         orderCode,
         customerNameDraft: customerName,
@@ -170,6 +151,7 @@ export async function POST(req: Request) {
         customerAddressDraft: customerAddress,
         customerDistrictDraft: customerDistrict,
         customerCityDraft: customerCity,
+        deliveryAreaType,
         salesId,
         status:
           paymentMethod === "TRANSFER"
@@ -196,73 +178,22 @@ export async function POST(req: Request) {
               },
             }
           : {}),
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
+        timelines: {
+          create: {
+            title: "Pesanan dibuat",
+            description: "Pesanan berhasil dibuat oleh customer",
           },
         },
-        paymentProof: true,
       },
     });
-
-    await addOrderTimeline({
-      orderId: order.id,
-      title: "Order dibuat",
-      description: `Order ${order.orderCode} berhasil dibuat`,
-    });
-
-    if (paymentProof) {
-      await addOrderTimeline({
-        orderId: order.id,
-        title: "Bukti pembayaran diunggah",
-        description: "Customer telah mengunggah bukti pembayaran",
-      });
-    }
-
-    const token = await prisma.emailConfirmationToken.create({
-      data: {
-        orderId: order.id,
-        token: nanoid(48),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
-      },
-    });
-
-    const confirmUrl = `${process.env.APP_URL}/api/orders/confirm?token=${token.token}`;
-    const rejectUrl = `${process.env.APP_URL}/api/orders/reject?token=${token.token}`;
-
-    if (paymentMethod === "TRANSFER") {
-      await sendOrderToSalesEmail({
-        salesEmail: sales.email,
-        salesName: sales.name,
-        customerName,
-        customerPhone,
-        productName: `${order.items.length} item`,
-        quantity: order.items.reduce((sum, item) => sum + item.quantity, 0),
-        total: Number(order.total),
-        paymentProofUrl: order.paymentProof?.fileUrl || "",
-        confirmUrl,
-        rejectUrl,
-        orderCode: order.orderCode,
-      });
-    }
-
-    await deleteCache("admin:dashboard:summary");
-    await deleteCache("admin:analytics:summary");
-    await deleteCacheByPattern("catalog:*");
-    await deleteCacheByPattern("product:detail:*");
 
     return NextResponse.json({
-      message: "Order berhasil dibuat",
-      orderCode: order.orderCode,
-      status: order.status,
-      paymentMethod,
-      total: Number(order.total),
+      message: "Pesanan berhasil dibuat",
+      orderId: createdOrder.id,
+      orderCode: createdOrder.orderCode,
     });
   } catch (error) {
     console.error("CREATE_ORDER_ERROR", error);
-
     return NextResponse.json(
       { message: "Gagal membuat order" },
       { status: 500 },
