@@ -12,6 +12,7 @@ import {
   ContactRound,
   Boxes,
   Settings,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,11 @@ const navItems = [
     href: "/admin/site-settings",
     icon: Settings,
     permission: "MANAGE_USERS",
+  },
+  {
+    title: "Rekening Bank",
+    href: "/admin/bank-accounts",
+    icon: Landmark,
   },
 ];
 

@@ -12,6 +12,7 @@ import {
   QrCode,
   Truck,
   MapPinned,
+  CheckCircle2,
 } from "lucide-react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
@@ -46,10 +47,14 @@ type PaymentProofState = {
 } | null;
 
 type SiteSettingLite = {
-  bankName: string;
-  bankAccountName: string;
-  bankAccountNumber: string;
   qrisImageUrl: string;
+  bankAccounts: {
+    id: string;
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    label: string;
+  }[];
 };
 
 const CITY_OPTIONS = [
@@ -104,6 +109,7 @@ export default function CartCheckoutForm({
   const [paymentNote, setPaymentNote] = useState("");
   const [acceptPoItems, setAcceptPoItems] = useState(false);
   const [paymentProof, setPaymentProof] = useState<PaymentProofState>(null);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -114,6 +120,12 @@ export default function CartCheckoutForm({
       setSalesId(salesOptions[0].id);
     }
   }, [salesOptions, salesId]);
+
+  useEffect(() => {
+    if (siteSetting.bankAccounts.length > 0 && !selectedBankAccountId) {
+      setSelectedBankAccountId(siteSetting.bankAccounts[0].id);
+    }
+  }, [siteSetting.bankAccounts, selectedBankAccountId]);
 
   useEffect(() => {
     async function loadProducts() {
@@ -145,6 +157,14 @@ export default function CartCheckoutForm({
 
   const customerCity =
     deliveryAreaType === "DALAM_KOTA" ? customerCityDropdown : customerCityText;
+
+  const selectedBankAccount = useMemo(() => {
+    return (
+      siteSetting.bankAccounts.find(
+        (account) => account.id === selectedBankAccountId,
+      ) || null
+    );
+  }, [siteSetting.bankAccounts, selectedBankAccountId]);
 
   const mergedItems = useMemo(() => {
     return items.map((cartItem) => {
@@ -300,7 +320,15 @@ export default function CartCheckoutForm({
         customerCity,
         deliveryAreaType,
         paymentMethod,
-        paymentNote,
+        paymentNote:
+          paymentMethod === "TRANSFER" && selectedBankAccount
+            ? [
+                paymentNote,
+                `Rekening dipilih: ${selectedBankAccount.label || selectedBankAccount.bankName}`,
+              ]
+                .filter(Boolean)
+                .join("\n")
+            : paymentNote,
         acceptPoItems,
         paymentProof: paymentProof || undefined,
       };
@@ -346,12 +374,12 @@ export default function CartCheckoutForm({
     toast.success("Quantity disesuaikan ke batas ready stock");
   }
 
-  async function copyAccountNumber() {
+  async function copyText(value: string, successMessage: string) {
     try {
-      await navigator.clipboard.writeText(siteSetting.bankAccountNumber);
-      toast.success("Nomor rekening disalin");
+      await navigator.clipboard.writeText(value);
+      toast.success(successMessage);
     } catch {
-      toast.error("Gagal menyalin nomor rekening");
+      toast.error("Gagal menyalin");
     }
   }
 
@@ -716,31 +744,121 @@ export default function CartCheckoutForm({
 
         {paymentMethod === "TRANSFER" ? (
           <>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center gap-2">
-                <Landmark className="h-4 w-4 text-[#125EA9]" />
-                <p className="font-medium text-slate-900">Rekening Tujuan</p>
-              </div>
-
-              <div className="mt-3 space-y-1 text-sm text-slate-600">
-                <p>Bank: {siteSetting.bankName || "-"}</p>
-                <p>Atas Nama: {siteSetting.bankAccountName || "-"}</p>
+            <div className="space-y-4">
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
                 <div className="flex items-center gap-2">
-                  <span>
-                    No. Rekening: {siteSetting.bankAccountNumber || "-"}
-                  </span>
-                  {siteSetting.bankAccountNumber ? (
-                    <button
-                      type="button"
-                      onClick={copyAccountNumber}
-                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      <Copy className="mr-1 h-3 w-3" />
-                      Copy
-                    </button>
-                  ) : null}
+                  <Landmark className="h-4 w-4 text-[#125EA9]" />
+                  <p className="font-medium text-slate-900">
+                    Pilih Rekening Tujuan
+                  </p>
+                </div>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Pilih salah satu rekening bank di bawah ini untuk melakukan
+                  pembayaran.
+                </p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {siteSetting.bankAccounts.map((account) => {
+                    const selected = account.id === selectedBankAccountId;
+
+                    return (
+                      <button
+                        key={account.id}
+                        type="button"
+                        onClick={() => setSelectedBankAccountId(account.id)}
+                        className={`relative rounded-[20px] border p-4 text-left transition ${
+                          selected
+                            ? "border-[#125EA9] bg-[#f4f9ff] shadow-sm ring-2 ring-[#125EA9]/15"
+                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {account.label || account.bankName}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {account.bankName}
+                            </p>
+                          </div>
+
+                          {selected ? (
+                            <div className="rounded-full bg-[#125EA9] p-1 text-white">
+                              <CheckCircle2 className="h-4 w-4" />
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-4 space-y-1">
+                          <p className="text-xs uppercase tracking-wide text-slate-400">
+                            Atas Nama
+                          </p>
+                          <p className="text-sm font-medium text-slate-800">
+                            {account.accountName}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 space-y-1">
+                          <p className="text-xs uppercase tracking-wide text-slate-400">
+                            Nomor Rekening
+                          </p>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-base font-semibold tracking-wide text-slate-950">
+                              {account.accountNumber}
+                            </p>
+
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyText(
+                                  account.accountNumber,
+                                  `Nomor rekening ${account.label || account.bankName} disalin`,
+                                );
+                              }}
+                              className="inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                              <Copy className="mr-1 h-3 w-3" />
+                              Copy
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
+              {selectedBankAccount ? (
+                <div className="rounded-[22px] border border-[#dbe8f7] bg-[#f7fbff] p-4">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Rekening yang dipilih
+                  </p>
+                  <div className="mt-2 space-y-1 text-sm text-slate-600">
+                    <p>
+                      <span className="font-medium text-slate-900">Label:</span>{" "}
+                      {selectedBankAccount.label ||
+                        selectedBankAccount.bankName}
+                    </p>
+                    <p>
+                      <span className="font-medium text-slate-900">Bank:</span>{" "}
+                      {selectedBankAccount.bankName}
+                    </p>
+                    <p>
+                      <span className="font-medium text-slate-900">
+                        Atas Nama:
+                      </span>{" "}
+                      {selectedBankAccount.accountName}
+                    </p>
+                    <p>
+                      <span className="font-medium text-slate-900">
+                        No. Rekening:
+                      </span>{" "}
+                      {selectedBankAccount.accountNumber}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {siteSetting.qrisImageUrl ? (

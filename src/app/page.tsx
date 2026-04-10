@@ -121,7 +121,7 @@ export default async function HomePage() {
         {heroBackground ? (
           <div className="absolute inset-0">
             <img
-              src={heroBackground}
+              src="https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809996/hero_z54weq.jpg"
               alt="HIRONA hero"
               className="h-full w-full object-cover opacity-30"
             />

@@ -173,6 +173,44 @@ async function main() {
     },
   });
 
+  await prisma.bankAccount.createMany({
+  data: [
+    {
+      bankName: "BRI",
+      accountName: "PT Hirona Inspirasi Nusantara",
+      accountNumber: "0445-0100-1553-307",
+      label: "BRI 1",
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      bankName: "BRI",
+      accountName: "SUHENKY",
+      accountNumber: "2045-0100-8183-503",
+      label: "BRI 2",
+      isActive: true,
+      sortOrder: 2,
+    },
+    {
+      bankName: "BCA",
+      accountName: "PT Hirona Inspirasi Nusantara",
+      accountNumber: "713-322-1176",
+      label: "BCA 1",
+      isActive: true,
+      sortOrder: 3,
+    },
+    {
+      bankName: "BCA",
+      accountName: "SUHENKY",
+      accountNumber: "4830-467-420",
+      label: "BCA 2",
+      isActive: true,
+      sortOrder: 4,
+    },
+  ],
+  skipDuplicates: true,
+});
+
   /**
    * 2. USERS
    */

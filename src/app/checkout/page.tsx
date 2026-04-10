@@ -12,7 +12,7 @@ import { getSiteSetting } from "@/lib/site-settings";
 import CartCheckoutForm from "@/components/cart-checkout-form";
 
 export default async function CheckoutPage() {
-  const [sales, setting] = await Promise.all([
+  const [sales, setting, bankAccounts] = await Promise.all([
     prisma.user.findMany({
       where: {
         role: "SALES",
@@ -29,6 +29,14 @@ export default async function CheckoutPage() {
       },
     }),
     getSiteSetting(),
+    prisma.bankAccount.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        sortOrder: "asc",
+      },
+    }),
   ]);
 
   return (
@@ -146,32 +154,48 @@ export default async function CheckoutPage() {
                 Informasi Pembayaran
               </h3>
 
-              <div className="mt-4 space-y-3 text-sm text-slate-600">
-                <p>
-                  <span className="font-medium text-slate-900">Bank:</span>{" "}
-                  {setting.bankName || "-"}
-                </p>
-                <p>
-                  <span className="font-medium text-slate-900">Atas Nama:</span>{" "}
-                  {setting.bankAccountName || "-"}
-                </p>
-                <p>
-                  <span className="font-medium text-slate-900">
-                    No. Rekening:
-                  </span>{" "}
-                  {setting.bankAccountNumber || "-"}
-                </p>
+              <div className="mt-4 space-y-4">
+                {bankAccounts.map((account) => (
+                  <div
+                    key={account.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <p className="text-sm font-semibold text-slate-900">
+                      {account.label || account.bankName}
+                    </p>
+                    <div className="mt-2 space-y-1 text-sm text-slate-600">
+                      <p>
+                        <span className="font-medium text-slate-900">
+                          Bank:
+                        </span>{" "}
+                        {account.bankName}
+                      </p>
+                      <p>
+                        <span className="font-medium text-slate-900">
+                          Atas Nama:
+                        </span>{" "}
+                        {account.accountName}
+                      </p>
+                      <p>
+                        <span className="font-medium text-slate-900">
+                          No. Rekening:
+                        </span>{" "}
+                        {account.accountNumber}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {setting.qrisImageUrl ? (
-                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <img
-                    src={setting.qrisImageUrl}
-                    alt="QRIS Hirona"
-                    className="mx-auto h-48 w-auto object-contain"
-                  />
-                </div>
-              ) : null}
+              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <img
+                  src={
+                    "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg"
+                  }
+                  alt="QRIS Hirona"
+                  className="mx-auto h-48 w-auto object-contain"
+                />
+              </div>
             </div>
           </div>
 
@@ -179,10 +203,15 @@ export default async function CheckoutPage() {
             <CartCheckoutForm
               salesOptions={sales}
               siteSetting={{
-                bankName: setting.bankName || "",
-                bankAccountName: setting.bankAccountName || "",
-                bankAccountNumber: setting.bankAccountNumber || "",
-                qrisImageUrl: setting.qrisImageUrl || "",
+                qrisImageUrl:
+                  "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg",
+                bankAccounts: bankAccounts.map((account) => ({
+                  id: account.id,
+                  bankName: account.bankName,
+                  accountName: account.accountName,
+                  accountNumber: account.accountNumber,
+                  label: account.label || "",
+                })),
               }}
             />
           </div>
