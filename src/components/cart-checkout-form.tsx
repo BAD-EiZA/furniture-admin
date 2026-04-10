@@ -320,15 +320,7 @@ export default function CartCheckoutForm({
         customerCity,
         deliveryAreaType,
         paymentMethod,
-        paymentNote:
-          paymentMethod === "TRANSFER" && selectedBankAccount
-            ? [
-                paymentNote,
-                `Rekening dipilih: ${selectedBankAccount.label || selectedBankAccount.bankName}`,
-              ]
-                .filter(Boolean)
-                .join("\n")
-            : paymentNote,
+        paymentNote,
         acceptPoItems,
         paymentProof: paymentProof || undefined,
       };
@@ -744,121 +736,68 @@ export default function CartCheckoutForm({
 
         {paymentMethod === "TRANSFER" ? (
           <>
-            <div className="space-y-4">
-              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-                <div className="flex items-center gap-2">
-                  <Landmark className="h-4 w-4 text-[#125EA9]" />
-                  <p className="font-medium text-slate-900">
-                    Pilih Rekening Tujuan
-                  </p>
-                </div>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  Pilih salah satu rekening bank di bawah ini untuk melakukan
-                  pembayaran.
+            <div className="rounded-[24px] border border-slate-200 bg-white p-5">
+              <div className="flex items-center gap-2">
+                <Landmark className="h-4 w-4 text-[#125EA9]" />
+                <p className="font-medium text-slate-900">
+                  Informasi Rekening Tujuan
                 </p>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {siteSetting.bankAccounts.map((account) => {
-                    const selected = account.id === selectedBankAccountId;
-
-                    return (
-                      <button
-                        key={account.id}
-                        type="button"
-                        onClick={() => setSelectedBankAccountId(account.id)}
-                        className={`relative rounded-[20px] border p-4 text-left transition ${
-                          selected
-                            ? "border-[#125EA9] bg-[#f4f9ff] shadow-sm ring-2 ring-[#125EA9]/15"
-                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">
-                              {account.label || account.bankName}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {account.bankName}
-                            </p>
-                          </div>
-
-                          {selected ? (
-                            <div className="rounded-full bg-[#125EA9] p-1 text-white">
-                              <CheckCircle2 className="h-4 w-4" />
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="mt-4 space-y-1">
-                          <p className="text-xs uppercase tracking-wide text-slate-400">
-                            Atas Nama
-                          </p>
-                          <p className="text-sm font-medium text-slate-800">
-                            {account.accountName}
-                          </p>
-                        </div>
-
-                        <div className="mt-3 space-y-1">
-                          <p className="text-xs uppercase tracking-wide text-slate-400">
-                            Nomor Rekening
-                          </p>
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-base font-semibold tracking-wide text-slate-950">
-                              {account.accountNumber}
-                            </p>
-
-                            <span
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyText(
-                                  account.accountNumber,
-                                  `Nomor rekening ${account.label || account.bankName} disalin`,
-                                );
-                              }}
-                              className="inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                            >
-                              <Copy className="mr-1 h-3 w-3" />
-                              Copy
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
-              {selectedBankAccount ? (
-                <div className="rounded-[22px] border border-[#dbe8f7] bg-[#f7fbff] p-4">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Rekening yang dipilih
-                  </p>
-                  <div className="mt-2 space-y-1 text-sm text-slate-600">
-                    <p>
-                      <span className="font-medium text-slate-900">Label:</span>{" "}
-                      {selectedBankAccount.label ||
-                        selectedBankAccount.bankName}
-                    </p>
-                    <p>
-                      <span className="font-medium text-slate-900">Bank:</span>{" "}
-                      {selectedBankAccount.bankName}
-                    </p>
-                    <p>
-                      <span className="font-medium text-slate-900">
-                        Atas Nama:
-                      </span>{" "}
-                      {selectedBankAccount.accountName}
-                    </p>
-                    <p>
-                      <span className="font-medium text-slate-900">
-                        No. Rekening:
-                      </span>{" "}
-                      {selectedBankAccount.accountNumber}
-                    </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Silakan transfer ke salah satu rekening berikut.
+              </p>
+
+              <div className="mt-4 space-y-3">
+                {siteSetting.bankAccounts.map((account) => (
+                  <div
+                    key={account.id}
+                    className="rounded-[20px] border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {account.label || account.bankName}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {account.bankName}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          copyText(
+                            account.accountNumber,
+                            `Nomor rekening ${account.label || account.bankName} disalin`,
+                          )
+                        }
+                        className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <Copy className="mr-1 h-3 w-3" />
+                        Copy
+                      </button>
+                    </div>
+
+                    <div className="mt-4 space-y-1 text-sm text-slate-600">
+                      <p>
+                        <span className="font-medium text-slate-900">
+                          Atas Nama:
+                        </span>{" "}
+                        {account.accountName}
+                      </p>
+                      <p>
+                        <span className="font-medium text-slate-900">
+                          No. Rekening:
+                        </span>{" "}
+                        <span className="font-semibold tracking-wide text-slate-950">
+                          {account.accountNumber}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ))}
+              </div>
             </div>
 
             {siteSetting.qrisImageUrl ? (

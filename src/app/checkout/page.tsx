@@ -5,11 +5,48 @@ import {
   ShoppingCart,
   MapPin,
   Phone,
+  ChevronDown,
 } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { getSiteSetting } from "@/lib/site-settings";
 import CartCheckoutForm from "@/components/cart-checkout-form";
+
+function groupBankAccountsByBankName(
+  bankAccounts: {
+    id: string;
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    label: string | null;
+    isActive: boolean;
+    sortOrder: number;
+  }[],
+) {
+  const grouped = new Map<
+    string,
+    {
+      id: string;
+      bankName: string;
+      accountName: string;
+      accountNumber: string;
+      label: string | null;
+      isActive: boolean;
+      sortOrder: number;
+    }[]
+  >();
+
+  for (const account of bankAccounts) {
+    const current = grouped.get(account.bankName) || [];
+    current.push(account);
+    grouped.set(account.bankName, current);
+  }
+
+  return Array.from(grouped.entries()).map(([bankName, accounts]) => ({
+    bankName,
+    accounts,
+  }));
+}
 
 export default async function CheckoutPage() {
   const [sales, setting, bankAccounts] = await Promise.all([
@@ -33,11 +70,15 @@ export default async function CheckoutPage() {
       where: {
         isActive: true,
       },
-      orderBy: {
-        sortOrder: "asc",
-      },
+      orderBy: [
+        { bankName: "asc" },
+        { sortOrder: "asc" },
+        { createdAt: "asc" },
+      ],
     }),
   ]);
+
+  const groupedBankAccounts = groupBankAccountsByBankName(bankAccounts);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
@@ -154,48 +195,66 @@ export default async function CheckoutPage() {
                 Informasi Pembayaran
               </h3>
 
-              <div className="mt-4 space-y-4">
-                {bankAccounts.map((account) => (
-                  <div
-                    key={account.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              <div className="mt-4 space-y-3">
+                {groupedBankAccounts.map((group, index) => (
+                  <details
+                    key={group.bankName}
+                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                    open={index === 0}
                   >
-                    <p className="text-sm font-semibold text-slate-900">
-                      {account.label || account.bankName}
-                    </p>
-                    <div className="mt-2 space-y-1 text-sm text-slate-600">
-                      <p>
-                        <span className="font-medium text-slate-900">
-                          Bank:
-                        </span>{" "}
-                        {account.bankName}
-                      </p>
-                      <p>
-                        <span className="font-medium text-slate-900">
-                          Atas Nama:
-                        </span>{" "}
-                        {account.accountName}
-                      </p>
-                      <p>
-                        <span className="font-medium text-slate-900">
-                          No. Rekening:
-                        </span>{" "}
-                        {account.accountNumber}
-                      </p>
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {group.bankName}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {group.accounts.length} rekening tersedia
+                        </p>
+                      </div>
+
+                      <ChevronDown className="h-4 w-4 text-slate-500 transition group-open:rotate-180" />
+                    </summary>
+
+                    <div className="border-t border-slate-200 bg-white px-4 py-4">
+                      <div className="space-y-3">
+                        {group.accounts.map((account) => (
+                          <div
+                            key={account.id}
+                            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                          >
+                            <p className="text-sm font-semibold text-slate-900">
+                              {account.label || account.bankName}
+                            </p>
+
+                            <div className="mt-2 space-y-1 text-sm text-slate-600">
+                              <p>
+                                <span className="font-medium text-slate-900">
+                                  Atas Nama:
+                                </span>{" "}
+                                {account.accountName}
+                              </p>
+                              <p>
+                                <span className="font-medium text-slate-900">
+                                  No. Rekening:
+                                </span>{" "}
+                                {account.accountNumber}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </details>
                 ))}
               </div>
 
               <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <img
-                  src={
-                    "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg"
-                  }
-                  alt="QRIS Hirona"
-                  className="mx-auto h-48 w-auto object-contain"
-                />
-              </div>
+                  <img
+                    src={"https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg"}
+                    alt="QRIS Hirona"
+                    className="mx-auto h-48 w-auto object-contain"
+                  />
+                </div>
             </div>
           </div>
 
@@ -203,8 +262,7 @@ export default async function CheckoutPage() {
             <CartCheckoutForm
               salesOptions={sales}
               siteSetting={{
-                qrisImageUrl:
-                  "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg",
+                qrisImageUrl: "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg",
                 bankAccounts: bankAccounts.map((account) => ({
                   id: account.id,
                   bankName: account.bankName,
