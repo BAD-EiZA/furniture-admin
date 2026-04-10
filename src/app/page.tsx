@@ -186,9 +186,19 @@ export default async function HomePage() {
           </nav>
 
           <div className="mx-auto flex min-h-[620px] max-w-7xl flex-col items-center justify-center px-4 pb-28 pt-8 text-center sm:min-h-[700px] sm:px-6 sm:pb-36 lg:px-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs text-white/90 backdrop-blur sm:text-sm">
-              <Sparkles className="h-4 w-4" />
-              PT Hirona Inspirasi Nusantara
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-white/95 backdrop-blur sm:px-5 sm:py-3">
+              <div className="relative h-6 w-6 overflow-hidden rounded-full bg-white/95 sm:h-7 sm:w-7">
+                <Image
+                  src="/images/hirona-logo.png"
+                  alt="Hirona Logo"
+                  fill
+                  className="object-contain p-0.5"
+                  priority
+                />
+              </div>
+              <span className="text-sm font-semibold tracking-wide sm:text-base">
+                PT Hirona Inspirasi Nusantara
+              </span>
             </div>
 
             <h1 className="mt-6 max-w-4xl text-3xl font-bold tracking-tight text-white sm:mt-8 sm:text-5xl lg:text-6xl">
