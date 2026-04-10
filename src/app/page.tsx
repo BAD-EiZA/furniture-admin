@@ -133,7 +133,7 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/30" />
 
         <div className="relative z-10">
-          <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-white/95 shadow-sm sm:h-14 sm:w-14">
                 <Image
@@ -155,34 +155,36 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="hidden items-center gap-6 lg:flex">
+            <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 lg:flex">
               <Link
                 href="/catalog"
-                className="text-sm text-white/90 hover:text-white"
+                className="text-sm font-medium text-white/90 transition hover:text-white"
               >
                 Katalog
               </Link>
               <Link
                 href="/catalog?q=dapur"
-                className="text-sm text-white/70 hover:text-white"
+                className="text-sm font-medium text-white/80 transition hover:text-white"
               >
                 Dapur
               </Link>
               <Link
                 href="/catalog?q=furnitur"
-                className="text-sm text-white/70 hover:text-white"
+                className="text-sm font-medium text-white/80 transition hover:text-white"
               >
                 Furnitur
               </Link>
               <Link
                 href="/catalog?q=kebersihan"
-                className="text-sm text-white/70 hover:text-white"
+                className="text-sm font-medium text-white/80 transition hover:text-white"
               >
                 Kebersihan
               </Link>
             </div>
 
-            <CartBadge />
+            <div className="relative z-10">
+              <CartBadge />
+            </div>
           </nav>
 
           <div className="mx-auto flex min-h-[620px] max-w-7xl flex-col items-center justify-center px-4 pb-28 pt-8 text-center sm:min-h-[700px] sm:px-6 sm:pb-36 lg:px-8">
