@@ -130,7 +130,7 @@ export default async function HomePage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.35),_transparent_28%),linear-gradient(to_bottom,_#10151d,_#000000)]" />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/90" />
+       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/50" />
 
         <div className="relative z-10">
           <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
