@@ -103,7 +103,7 @@ export default async function AdminDashboardPage() {
           <div className="max-w-2xl">
             <Badge className="mb-4 rounded-full bg-white/10 px-3 py-1 text-white hover:bg-white/10">
               <Sparkles className="mr-1 h-3.5 w-3.5" />
-              Admin Dashboard
+              Dashboard Admin
             </Badge>
 
             <h1 className="text-3xl font-bold tracking-tight lg:text-4xl">
@@ -124,7 +124,7 @@ export default async function AdminDashboardPage() {
               className="rounded-2xl bg-white/10 text-white hover:bg-white/15"
             >
               <Link href="/admin/orders">
-                Lihat Order
+                Lihat Pesanan
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -173,7 +173,7 @@ export default async function AdminDashboardPage() {
       <section className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
         <Card className="rounded-[24px] border-slate-200/70 bg-white/85 shadow-lg backdrop-blur">
           <CardHeader>
-            <CardTitle>Order Terbaru</CardTitle>
+            <CardTitle>Pesanan Terbaru</CardTitle>
             <CardDescription>
               5 transaksi paling baru yang masuk ke sistem
             </CardDescription>
@@ -182,7 +182,7 @@ export default async function AdminDashboardPage() {
           <CardContent className="space-y-4">
             {recentOrders.length === 0 ? (
               <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
-                Belum ada order terbaru
+                Belum ada pesanan terbaru
               </div>
             ) : (
               recentOrders.map((order) => {
@@ -221,7 +221,7 @@ export default async function AdminDashboardPage() {
 
         <Card className="rounded-[24px] border-slate-200/70 bg-white/85 shadow-lg backdrop-blur">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>Aksi Cepat</CardTitle>
             <CardDescription>
               Aksi cepat untuk operasional harian
             </CardDescription>
@@ -241,7 +241,7 @@ export default async function AdminDashboardPage() {
               className="justify-between rounded-2xl"
             >
               <Link href="/admin/orders">
-                Kelola Order
+                Kelola Pesanan
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -252,7 +252,7 @@ export default async function AdminDashboardPage() {
               className="justify-between rounded-2xl"
             >
               <Link href="/admin/users">
-                Kelola User
+                Kelola Pengguna
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -263,7 +263,7 @@ export default async function AdminDashboardPage() {
               className="justify-between rounded-2xl"
             >
               <Link href="/admin/audit-logs">
-                Audit Log
+                Log Audit
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>

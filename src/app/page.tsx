@@ -130,7 +130,7 @@ export default async function HomePage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.35),_transparent_28%),linear-gradient(to_bottom,_#10151d,_#000000)]" />
         )}
 
-       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/30" />
 
         <div className="relative z-10">
           <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -145,11 +145,12 @@ export default async function HomePage() {
                 />
               </div>
 
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold tracking-[0.2em] text-white sm:text-sm">
+              <div className="min-w-0 flex items-center gap-1.5 sm:gap-3">
+                <p className="whitespace-nowrap text-xs font-semibold tracking-[0.18em] text-white sm:text-sm">
                   HIRONA
                 </p>
-                <p className="truncate text-[10px] text-white/60 sm:text-xs">
+                <span className="text-white/35">|</span>
+                <p className="whitespace-nowrap text-[11px] font-medium tracking-[0.12em] text-white/70 sm:text-sm">
                   HOMEWARE
                 </p>
               </div>

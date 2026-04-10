@@ -121,9 +121,9 @@ export default async function OrdersPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Order</h2>
+          <h2 className="text-2xl font-bold">Pesanan</h2>
           <p className="text-sm text-slate-500">
-            Monitoring pembayaran, status, metode pembayaran, dan item PO
+            Pantau pembayaran, status, metode pembayaran, dan item PO
           </p>
         </div>
 
@@ -131,7 +131,7 @@ export default async function OrdersPage({
           href={`/api/admin/orders/export?${queryBase.toString()}`}
           className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700"
         >
-          Export Excel
+          Ekspor Excel
         </a>
       </div>
 
@@ -141,7 +141,7 @@ export default async function OrdersPage({
             type="text"
             name="q"
             defaultValue={q}
-            placeholder="Cari order, nama, HP, alamat..."
+            placeholder="Cari pesanan, nama, HP, alamat..."
             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
           />
 
@@ -151,12 +151,12 @@ export default async function OrdersPage({
             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
           >
             <option value="">Semua Status</option>
-            <option value="PENDING_PAYMENT">PENDING_PAYMENT</option>
-            <option value="WAITING_CONFIRMATION">WAITING_CONFIRMATION</option>
-            <option value="CONFIRMED">CONFIRMED</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="CANCELLED">CANCELLED</option>
-            <option value="INVOICE_SENT">INVOICE_SENT</option>
+            <option value="PENDING_PAYMENT">Menunggu Pembayaran</option>
+            <option value="WAITING_CONFIRMATION">Menunggu Konfirmasi</option>
+            <option value="CONFIRMED">Terkonfirmasi</option>
+            <option value="REJECTED">Ditolak</option>
+            <option value="CANCELLED">Dibatalkan</option>
+            <option value="INVOICE_SENT">Faktur Terkirim</option>
           </select>
 
           <select
@@ -202,7 +202,7 @@ export default async function OrdersPage({
             defaultValue={hasPo}
             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
           >
-            <option value="">Semua Order</option>
+            <option value="">Semua Pesanan</option>
             <option value="true">Hanya yang ada PO</option>
           </select>
 
@@ -220,10 +220,10 @@ export default async function OrdersPage({
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50 text-left text-slate-600">
               <tr>
-                <th className="px-4 py-3">Order</th>
-                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3">Pesanan</th>
+                <th className="px-4 py-3">Pelanggan</th>
                 <th className="px-4 py-3">Sales</th>
-                <th className="px-4 py-3">Payment</th>
+                <th className="px-4 py-3">Pembayaran</th>
                 <th className="px-4 py-3">Item</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Status</th>
@@ -276,7 +276,7 @@ export default async function OrdersPage({
                       <div>
                         <p>{order.items.length} item</p>
                         <p className="text-xs text-slate-500">
-                          Qty {totalQty}
+                          Jml {totalQty}
                         </p>
                         {totalPo > 0 ? (
                           <p className="mt-1 inline-flex rounded-full bg-yellow-50 px-2 py-1 text-[11px] font-medium text-yellow-700">
@@ -336,7 +336,7 @@ export default async function OrdersPage({
               {orders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                    Belum ada order
+                    Belum ada pesanan
                   </td>
                 </tr>
               ) : null}
@@ -347,7 +347,7 @@ export default async function OrdersPage({
 
       <div className="flex items-center justify-between text-sm">
         <p className="text-slate-500">
-          Halaman {page} dari {totalPages} • Total {total} order
+          Halaman {page} dari {totalPages} • Total {total} pesanan
         </p>
 
         <div className="flex gap-2">
@@ -357,11 +357,11 @@ export default async function OrdersPage({
               page: String(Math.max(1, page - 1)),
             }).toString()}`}
             className={`rounded-lg px-3 py-2 ${page <= 1
-                ? "pointer-events-none bg-slate-100 text-slate-400"
-                : "bg-slate-900 text-white hover:bg-slate-800"
+              ? "pointer-events-none bg-slate-100 text-slate-400"
+              : "bg-slate-900 text-white hover:bg-slate-800"
               }`}
           >
-            Prev
+            Sebelumnya
           </Link>
 
           <Link
@@ -370,11 +370,11 @@ export default async function OrdersPage({
               page: String(Math.min(totalPages, page + 1)),
             }).toString()}`}
             className={`rounded-lg px-3 py-2 ${page >= totalPages
-                ? "pointer-events-none bg-slate-100 text-slate-400"
-                : "bg-slate-900 text-white hover:bg-slate-800"
+              ? "pointer-events-none bg-slate-100 text-slate-400"
+              : "bg-slate-900 text-white hover:bg-slate-800"
               }`}
           >
-            Next
+            Selanjutnya
           </Link>
         </div>
       </div>

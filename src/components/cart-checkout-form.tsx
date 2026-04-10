@@ -459,8 +459,8 @@ export default function CartCheckoutForm({
                         Diskon: {item.discountLabel}
                       </p>
                       <p className="text-sm text-slate-500">
-                        Ongkir/item: Rp{" "}
-                        {item.shippingPerItem.toLocaleString("id-ID")}
+                        Ongkir: Rp{" "}
+                        {item.shippingPerItem.toLocaleString("id-ID")}/Pcs
                       </p>
                       <p className="text-sm text-slate-500">
                         Ready stock: {item.product?.readyStock ?? "-"}

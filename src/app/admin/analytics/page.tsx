@@ -124,7 +124,7 @@ export default async function AnalyticsPage() {
             <BarChart3 className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-950">Analytics</h1>
+            <h1 className="text-2xl font-bold text-slate-950">Analitik</h1>
             <p className="text-sm text-slate-500">
               Ringkasan performa penjualan, stok ready vs PO, dan metode
               pembayaran.
@@ -166,26 +166,26 @@ export default async function AnalyticsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">
-            Ringkasan Quantity
+            Ringkasan Kuantitas
           </h2>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Total Qty</p>
+              <p className="text-sm text-slate-500">Total Kuantitas</p>
               <p className="mt-2 text-2xl font-bold text-slate-950">
                 {totalQty}
               </p>
             </div>
 
             <div className="rounded-2xl bg-green-50 p-4">
-              <p className="text-sm text-green-700">Ready Qty</p>
+              <p className="text-sm text-green-700">Kuantitas Ready</p>
               <p className="mt-2 text-2xl font-bold text-green-800">
                 {totalReadyQty}
               </p>
             </div>
 
             <div className="rounded-2xl bg-yellow-50 p-4">
-              <p className="text-sm text-yellow-700">PO Qty</p>
+              <p className="text-sm text-yellow-700">Kuantitas PO</p>
               <p className="mt-2 text-2xl font-bold text-yellow-800">
                 {totalPoQty}
               </p>
@@ -213,7 +213,7 @@ export default async function AnalyticsPage() {
                       {formatPaymentMethod(item.paymentMethod)}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {item._count.id} order
+                      {item._count.id} pesanan
                     </p>
                   </div>
                 </div>
@@ -238,7 +238,7 @@ export default async function AnalyticsPage() {
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Truck className="h-5 w-5 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-950">Top Produk</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Produk Teratas</h2>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -256,7 +256,7 @@ export default async function AnalyticsPage() {
                         {product?.name || row.productId}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        Qty: {row._sum.quantity || 0} • Ready:{" "}
+                        Jml: {row._sum.quantity || 0} • Ready:{" "}
                         {row._sum.readyQty || 0} • PO: {row._sum.poQty || 0}
                       </p>
                     </div>
@@ -278,7 +278,7 @@ export default async function AnalyticsPage() {
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-950">Top Sales</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Sales Teratas</h2>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -296,7 +296,7 @@ export default async function AnalyticsPage() {
                         {salesUser?.name || row.salesId}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        {row._count.id} confirmed order
+                        {row._count.id} pesanan terkonfirmasi
                       </p>
                     </div>
 

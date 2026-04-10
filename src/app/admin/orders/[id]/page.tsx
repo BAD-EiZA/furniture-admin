@@ -58,9 +58,9 @@ export default async function AdminOrderDetailPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Detail Order</h2>
+          <h2 className="text-2xl font-bold">Detail Pesanan</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Order Code: {order.orderCode}
+            Kode Pesanan: {order.orderCode}
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export default async function AdminOrderDetailPage({
         <div className="space-y-6">
           <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">
-              Informasi Customer
+              Informasi Pelanggan
             </h2>
 
             <div className="mt-5 space-y-2 text-sm">
@@ -121,7 +121,7 @@ export default async function AdminOrderDetailPage({
           </div>
 
           <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Item Order</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Item Pesanan</h2>
 
             <div className="mt-5 space-y-4">
               {order.items.map((item) => (
@@ -140,7 +140,7 @@ export default async function AdminOrderDetailPage({
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-slate-500">
-                            No image
+                            Tanpa gambar
                           </div>
                         )}
                       </div>
@@ -172,7 +172,7 @@ export default async function AdminOrderDetailPage({
 
                     <div className="space-y-2 text-sm text-slate-500 md:text-right">
                       <p>
-                        Qty:{" "}
+                        Jml:{" "}
                         <span className="font-medium text-slate-900">
                           {item.quantity}
                         </span>
@@ -222,7 +222,7 @@ export default async function AdminOrderDetailPage({
               </div>
 
               <div className="flex justify-between">
-                <span>Shipping</span>
+                <span>Biaya Pengiriman</span>
                 <span>
                   Rp {Number(order.shippingCost || 0).toLocaleString("id-ID")}
                 </span>
@@ -232,7 +232,7 @@ export default async function AdminOrderDetailPage({
                 <span>{formatAdjustmentLabel(order.adjustmentType)}</span>
                 <span>
                   {Number(order.adjustmentValue) > 0 &&
-                  order.adjustmentType === "DISCOUNT"
+                    order.adjustmentType === "DISCOUNT"
                     ? "-"
                     : ""}
                   Rp{" "}
@@ -273,7 +273,7 @@ export default async function AdminOrderDetailPage({
                   className="inline-flex items-center rounded-2xl bg-[#125EA9] px-4 py-3 text-sm font-medium text-white hover:bg-[#0f4f8f]"
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  Invoice PDF
+                  Faktur PDF (Invoice)
                 </a>
               ) : null}
             </div>
