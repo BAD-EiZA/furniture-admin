@@ -146,11 +146,10 @@ export default async function HomePage() {
               </div>
 
               <div className="min-w-0 flex items-center gap-1.5 sm:gap-3">
-                <p className="whitespace-nowrap text-xs font-semibold tracking-[0.18em] text-white sm:text-sm">
+                <p className="whitespace-nowrap text-xs font-semibold tracking-[0.12em] text-white sm:text-sm">
                   HIRONA
                 </p>
-                <span className="text-white/35">|</span>
-                <p className="whitespace-nowrap text-[11px] font-medium tracking-[0.12em] text-white/70 sm:text-sm">
+                <p className="whitespace-nowrap text-xs font-semibold tracking-[0.12em] text-white sm:text-sm">
                   HOMEWARE
                 </p>
               </div>
