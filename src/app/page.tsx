@@ -145,7 +145,7 @@ export default async function HomePage() {
                 />
               </div>
 
-              <div className="min-w-0 flex items-center gap-1.5 sm:gap-3">
+              <div className="min-w-0 flex items-center gap-1">
                 <p className="whitespace-nowrap text-xs font-semibold tracking-[0.12em] text-white sm:text-sm">
                   HIRONA
                 </p>
