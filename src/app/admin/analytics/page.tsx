@@ -1,6 +1,3 @@
-import AdminAnalyticsCharts from "@/components/admin-analytics-charts";
-import { getAdminAnalyticsSummary } from "@/lib/analytics-cache";
-import { prisma } from "@/lib/prisma";
 import {
   BarChart3,
   CircleDollarSign,
@@ -12,6 +9,10 @@ import {
   XCircle,
   CreditCard,
 } from "lucide-react";
+
+import AdminAnalyticsCharts from "@/components/admin-analytics-charts";
+import { getAdminAnalyticsSummary } from "@/lib/analytics-cache";
+import { prisma } from "@/lib/prisma";
 
 function formatCurrency(value: number) {
   return `Rp ${value.toLocaleString("id-ID")}`;
@@ -27,97 +28,108 @@ function formatPaymentMethod(method: string) {
 export default async function AnalyticsPage() {
   const analytics = await getAdminAnalyticsSummary();
 
-  const productIds = analytics.topProductsRaw.map(
-    (item: any) => item.productId,
-  );
-  const salesIds = analytics.topSalesRaw.map((item: any) => item.salesId);
+  const topProductsRaw = analytics?.topProductsRaw || [];
+  const topSalesRaw = analytics?.topSalesRaw || [];
+  const paymentMethodRaw = analytics?.paymentMethodRaw || [];
+
+  const revenue = Number(analytics?.revenueAggregate?._sum?.total || 0);
+  const totalReadyQty = Number(analytics?.orderItems?._sum?.readyQty || 0);
+  const totalPoQty = Number(analytics?.orderItems?._sum?.poQty || 0);
+  const totalQty = Number(analytics?.orderItems?._sum?.quantity || 0);
+
+  const confirmedOrders = Number(analytics?.confirmedOrders || 0);
+  const rejectedOrders = Number(analytics?.rejectedOrders || 0);
+  const waitingOrders = Number(analytics?.waitingOrders || 0);
+  const pendingOrders = Number(analytics?.pendingOrders || 0);
+  const totalCustomers = Number(analytics?.totalCustomers || 0);
+
+  const productIds = topProductsRaw.map((item: any) => item.productId).filter(Boolean);
+  const salesIds = topSalesRaw.map((item: any) => item.salesId).filter(Boolean);
 
   const [products, sales] = await Promise.all([
-    prisma.product.findMany({
-      where: {
-        id: { in: productIds },
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    }),
-    prisma.user.findMany({
-      where: {
-        id: { in: salesIds },
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    }),
+    productIds.length
+      ? prisma.product.findMany({
+        where: {
+          id: { in: productIds },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+      : [],
+    salesIds.length
+      ? prisma.user.findMany({
+        where: {
+          id: { in: salesIds },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+      : [],
   ]);
-
-  const revenue = Number(analytics.revenueAggregate._sum.total || 0);
-  const totalReadyQty = Number(analytics.orderItems._sum.readyQty || 0);
-  const totalPoQty = Number(analytics.orderItems._sum.poQty || 0);
-  const totalQty = Number(analytics.orderItems._sum.quantity || 0);
 
   const summaryCards = [
     {
-      title: "Omzet Confirmed",
+      title: "Omzet Terkonfirmasi",
       value: formatCurrency(revenue),
       icon: CircleDollarSign,
       color: "bg-emerald-50 text-emerald-700",
     },
     {
-      title: "Customer",
-      value: analytics.totalCustomers.toString(),
+      title: "Total Pelanggan",
+      value: totalCustomers.toString(),
       icon: Users,
       color: "bg-blue-50 text-blue-700",
     },
     {
-      title: "Confirmed Orders",
-      value: analytics.confirmedOrders.toString(),
+      title: "Pesanan Berhasil",
+      value: confirmedOrders.toString(),
       icon: PackageCheck,
       color: "bg-green-50 text-green-700",
     },
     {
-      title: "Rejected Orders",
-      value: analytics.rejectedOrders.toString(),
+      title: "Pesanan Ditolak",
+      value: rejectedOrders.toString(),
       icon: XCircle,
       color: "bg-red-50 text-red-700",
     },
     {
-      title: "Waiting Confirmation",
-      value: analytics.waitingOrders.toString(),
+      title: "Menunggu Konfirmasi",
+      value: waitingOrders.toString(),
       icon: Clock3,
       color: "bg-amber-50 text-amber-700",
     },
     {
-      title: "Pending Payment",
-      value: analytics.pendingOrders.toString(),
+      title: "Menunggu Pembayaran",
+      value: pendingOrders.toString(),
       icon: ShoppingCart,
       color: "bg-slate-100 text-slate-700",
     },
   ];
 
-  const paymentMethodData = analytics.paymentMethodRaw.map((item: any) => ({
+  const paymentMethodData = paymentMethodRaw.map((item: any) => ({
     name: formatPaymentMethod(item.paymentMethod),
-    orders: item._count.id,
-    total: Number(item._sum.total || 0),
+    orders: Number(item?._count?.id || 0),
+    total: Number(item?._sum?.total || 0),
   }));
 
   const statusData = [
-    { name: "Confirmed", value: analytics.confirmedOrders },
-    { name: "Rejected", value: analytics.rejectedOrders },
-    { name: "Waiting", value: analytics.waitingOrders },
-    { name: "Pending", value: analytics.pendingOrders },
+    { name: "Terkonfirmasi", value: confirmedOrders },
+    { name: "Ditolak", value: rejectedOrders },
+    { name: "Menunggu", value: waitingOrders },
+    { name: "Pending", value: pendingOrders },
   ];
 
   const stockData = [
-    { name: "Ready Qty", value: totalReadyQty },
-    { name: "PO Qty", value: totalPoQty },
+    { name: "Stok Ready", value: totalReadyQty },
+    { name: "Stok PO", value: totalPoQty },
   ];
 
   return (
     <div className="space-y-6">
-      {/* header */}
       <div className="rounded-[28px] border border-slate-200/70 bg-white/90 p-6 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
@@ -126,14 +138,12 @@ export default async function AnalyticsPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-950">Analitik</h1>
             <p className="text-sm text-slate-500">
-              Ringkasan performa penjualan, stok ready vs PO, dan metode
-              pembayaran.
+              Ringkasan performa penjualan, stok ready vs PO, dan metode pembayaran.
             </p>
           </div>
         </div>
       </div>
 
-      {/* cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {summaryCards.map((card) => {
           const Icon = card.icon;
@@ -162,7 +172,6 @@ export default async function AnalyticsPage() {
         })}
       </div>
 
-      {/* ready vs po */}
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">
@@ -199,7 +208,7 @@ export default async function AnalyticsPage() {
           </h2>
 
           <div className="mt-5 space-y-3">
-            {analytics.paymentMethodRaw.map((item: any) => (
+            {paymentMethodRaw.map((item: any) => (
               <div
                 key={item.paymentMethod}
                 className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-50 px-4 py-4"
@@ -213,18 +222,18 @@ export default async function AnalyticsPage() {
                       {formatPaymentMethod(item.paymentMethod)}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {item._count.id} pesanan
+                      {Number(item?._count?.id || 0)} pesanan
                     </p>
                   </div>
                 </div>
 
                 <p className="font-semibold text-slate-900">
-                  {formatCurrency(Number(item._sum.total || 0))}
+                  {formatCurrency(Number(item?._sum?.total || 0))}
                 </p>
               </div>
             ))}
 
-            {analytics.paymentMethodRaw.length === 0 ? (
+            {paymentMethodRaw.length === 0 ? (
               <p className="text-sm text-slate-500">
                 Belum ada data metode pembayaran.
               </p>
@@ -233,16 +242,23 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* top products & top sales */}
+      <div>
+        <AdminAnalyticsCharts
+          paymentMethodData={paymentMethodData}
+          statusData={statusData}
+          stockData={stockData}
+        />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Truck className="h-5 w-5 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-950">Produk Teratas</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Produk Terlaris</h2>
           </div>
 
           <div className="mt-5 space-y-3">
-            {analytics.topProductsRaw.map((row: any) => {
+            {topProductsRaw.map((row: any) => {
               const product = products.find((p) => p.id === row.productId);
 
               return (
@@ -256,20 +272,21 @@ export default async function AnalyticsPage() {
                         {product?.name || row.productId}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        Jml: {row._sum.quantity || 0} • Ready:{" "}
-                        {row._sum.readyQty || 0} • PO: {row._sum.poQty || 0}
+                        Jml: {Number(row?._sum?.quantity || 0)} • Ready:{" "}
+                        {Number(row?._sum?.readyQty || 0)} • PO:{" "}
+                        {Number(row?._sum?.poQty || 0)}
                       </p>
                     </div>
 
                     <p className="font-semibold text-slate-900">
-                      {formatCurrency(Number(row._sum.subtotal || 0))}
+                      {formatCurrency(Number(row?._sum?.subtotal || 0))}
                     </p>
                   </div>
                 </div>
               );
             })}
 
-            {analytics.topProductsRaw.length === 0 ? (
+            {topProductsRaw.length === 0 ? (
               <p className="text-sm text-slate-500">Belum ada data produk.</p>
             ) : null}
           </div>
@@ -278,11 +295,11 @@ export default async function AnalyticsPage() {
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-950">Sales Teratas</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Sales Terbaik</h2>
           </div>
 
           <div className="mt-5 space-y-3">
-            {analytics.topSalesRaw.map((row: any) => {
+            {topSalesRaw.map((row: any) => {
               const salesUser = sales.find((s) => s.id === row.salesId);
 
               return (
@@ -296,28 +313,22 @@ export default async function AnalyticsPage() {
                         {salesUser?.name || row.salesId}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        {row._count.id} pesanan terkonfirmasi
+                        {Number(row?._count?.id || 0)} pesanan terkonfirmasi
                       </p>
                     </div>
 
                     <p className="font-semibold text-slate-900">
-                      {formatCurrency(Number(row._sum.total || 0))}
+                      {formatCurrency(Number(row?._sum?.total || 0))}
                     </p>
                   </div>
                 </div>
               );
             })}
 
-            {analytics.topSalesRaw.length === 0 ? (
+            {topSalesRaw.length === 0 ? (
               <p className="text-sm text-slate-500">Belum ada data sales.</p>
             ) : null}
           </div>
-
-          <AdminAnalyticsCharts
-            paymentMethodData={paymentMethodData}
-            statusData={statusData}
-            stockData={stockData}
-          />
         </div>
       </div>
     </div>
