@@ -30,7 +30,7 @@ export async function sendOrderToSalesEmail(params: SendOrderToSalesParams) {
   } = params;
 
   await transporter.sendMail({
-    from: `"Furniture App" <${process.env.SMTP_USER}>`,
+    from: `"Hirona Homeware" <${process.env.SMTP_USER}>`,
     to: salesEmail,
     subject: `Konfirmasi pembayaran ${orderCode}`,
     html: `

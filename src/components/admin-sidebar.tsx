@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -92,7 +93,8 @@ export default function AdminSidebar({
   return (
     <aside
       className={cn(
-        "w-72 shrink-0 border-r border-white/10 bg-slate-950 text-white",
+        "w-72 shrink-0 border-r border-white/10 text-white",
+        "bg-gradient-to-b from-[#0d2f57] via-[#125EA9] to-[#1f3f82]",
         mobile ? "block" : "hidden lg:block",
       )}
     >
@@ -103,13 +105,24 @@ export default function AdminSidebar({
         )}
       >
         <div className="border-b border-white/10 px-6 py-6">
-          <div className="inline-flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 font-bold">
-              FA
+          <div className="flex items-center gap-3">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white/95 shadow-md ring-1 ring-white/20">
+              <Image
+                src="/images/hirona-logo.png"
+                alt="Hirona Logo"
+                fill
+                className="object-contain p-1.5"
+                priority
+              />
             </div>
-            <div>
-              <p className="text-sm text-slate-400">Admin Panel</p>
-              <h2 className="text-lg font-semibold">Furniture App</h2>
+
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/70">
+                Admin Panel
+              </p>
+              <h2 className="truncate text-lg font-semibold text-white">
+                Hirona Homeware
+              </h2>
             </div>
           </div>
         </div>
@@ -124,25 +137,28 @@ export default function AdminSidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all",
+                  "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all duration-200",
                   active
-                    ? "bg-white text-slate-950 shadow-lg"
-                    : "text-slate-300 hover:bg-white/10 hover:text-white",
+                    ? "bg-white text-[#125EA9] shadow-lg shadow-black/10"
+                    : "text-white/85 hover:bg-white/12 hover:text-white",
                 )}
               >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
+                <div
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-xl transition",
+                    active
+                      ? "bg-[#eef4ff] text-[#125EA9]"
+                      : "bg-white/10 text-white/85 group-hover:bg-white/15",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+
+                <span className="font-medium">{item.label}</span>
               </Link>
             );
           })}
         </nav>
-
-        <div className="border-t border-white/10 p-4">
-          <div className="rounded-2xl bg-white/5 p-4">
-            <p className="text-xs text-slate-400">UI Style</p>
-            <p className="mt-1 text-sm font-medium">shadcn + Kokonut vibe</p>
-          </div>
-        </div>
       </div>
     </aside>
   );
