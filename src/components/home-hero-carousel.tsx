@@ -47,7 +47,7 @@ export default function HomeHeroCarousel({
 
         const interval = window.setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % safeSlides.length);
-        }, 3000);
+        }, 10000);
 
         return () => window.clearInterval(interval);
     }, [safeSlides.length]);
