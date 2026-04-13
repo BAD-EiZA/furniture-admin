@@ -52,7 +52,7 @@ export default async function ProductsPage({
 
         <Link
           href="/admin/products/new"
-          className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
         >
           + Tambah Produk
         </Link>
@@ -69,32 +69,29 @@ export default async function ProductsPage({
           />
           <button
             type="submit"
-            className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800"
+            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800 sm:w-auto"
           >
             Cari
           </button>
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-600">
-              <tr>
-                <th className="px-4 py-3">Produk</th>
-                <th className="px-4 py-3">Harga</th>
-                <th className="px-4 py-3">Stok</th>
-                <th className="px-4 py-3">Slug</th>
-                <th className="px-4 py-3">Aksi</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-t">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-14 w-20 overflow-hidden rounded-lg bg-slate-100">
+      <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+        {products.length === 0 ? (
+          <div className="px-4 py-10 text-center text-slate-500">
+            Belum ada produk
+          </div>
+        ) : (
+          <>
+            <div className="block md:hidden">
+              <div className="space-y-4 p-4">
+                {products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="rounded-2xl border border-slate-200/70 bg-slate-50 p-4"
+                  >
+                    <div className="flex gap-3">
+                      <div className="h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                         {product.medias[0]?.type === "IMAGE" ? (
                           <img
                             src={product.medias[0].fileUrl}
@@ -108,23 +105,23 @@ export default async function ProductsPage({
                         )}
                       </div>
 
-                      <div>
-                        <p className="font-semibold">{product.name}</p>
-                        <p className="text-xs text-slate-500">
-                          {product.medias.length} media
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900">
+                          {product.name}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Rp {Number(product.price).toLocaleString("id-ID")}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Slug: {product.slug}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Stock: {product.stock}
                         </p>
                       </div>
                     </div>
-                  </td>
 
-                  <td className="px-4 py-3">
-                    Rp {Number(product.price).toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-4 py-3">{product.stock}</td>
-                  <td className="px-4 py-3 text-slate-500">{product.slug}</td>
-
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <Link
                         href={`/admin/products/${product.id}/edit`}
                         className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
@@ -141,26 +138,99 @@ export default async function ProductsPage({
                         QR
                       </Link>
                     </div>
-                  </td>
-                </tr>
-              ))}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-              {products.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-8 text-center text-slate-500"
-                  >
-                    Belum ada produk
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-left text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3">Produk</th>
+                    <th className="px-4 py-3">Harga</th>
+                    <th className="px-4 py-3">Stok</th>
+                    <th className="px-4 py-3">Slug</th>
+                    <th className="px-4 py-3">Aksi</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id} className="border-t">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-14 w-20 overflow-hidden rounded-lg bg-slate-100">
+                            {product.medias[0]?.type === "IMAGE" ? (
+                              <img
+                                src={product.medias[0].fileUrl}
+                                alt={product.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-xs text-slate-500">
+                                No image
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="font-semibold">{product.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {product.medias.length} media
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        Rp {Number(product.price).toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-4 py-3">{product.stock}</td>
+                      <td className="px-4 py-3 text-slate-500">
+                        {product.slug}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            href={`/admin/products/${product.id}/edit`}
+                            className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                          >
+                            Edit
+                          </Link>
+
+                          <DeleteProductButton id={product.id} />
+
+                          <Link
+                            href={`/admin/products/${product.id}/qr`}
+                            className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                          >
+                            QR
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {products.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-4 py-8 text-center text-slate-500"
+                      >
+                        Belum ada produk
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-slate-500">
           Halaman {page} dari {totalPages} • Total {total} produk
         </p>
@@ -171,7 +241,7 @@ export default async function ProductsPage({
               1,
               page - 1,
             )}&limit=${limit}`}
-            className={`rounded-lg px-3 py-2 ${
+            className={`flex-1 rounded-lg px-3 py-2 text-center sm:flex-none ${
               page <= 1
                 ? "pointer-events-none bg-slate-100 text-slate-400"
                 : "bg-slate-900 text-white hover:bg-slate-800"
@@ -185,7 +255,7 @@ export default async function ProductsPage({
               totalPages,
               page + 1,
             )}&limit=${limit}`}
-            className={`rounded-lg px-3 py-2 ${
+            className={`flex-1 rounded-lg px-3 py-2 text-center sm:flex-none ${
               page >= totalPages
                 ? "pointer-events-none bg-slate-100 text-slate-400"
                 : "bg-slate-900 text-white hover:bg-slate-800"

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { getCustomerDetail } from "@/lib/customer-cache";
 
 function formatPaymentMethod(method: string) {
@@ -21,17 +20,11 @@ export default async function CustomerDetailPage({
 
   if (!customer) notFound();
 
-  const totalOrders = customer.orders.length;
-  const totalSpend = customer.orders.reduce(
-    (sum: any, order: any) => sum + Number(order.total),
-    0
-  );
-  const totalItems = customer.orders.reduce(
-    (sum: any, order: any) =>
-      sum + order.items.reduce((itemSum: any, item: any) => itemSum + item.quantity, 0),
-    0
-  );
+  const totalOrders = customer.aggregatedOrderCount;
+  const totalSpend = customer.aggregatedTotalSpend;
+  const totalItems = customer.aggregatedTotalItems;
   const repeatCustomer = totalOrders > 1;
+  const promoEligible = customer.promoEligible;
 
   return (
     <div className="space-y-6">
@@ -53,10 +46,27 @@ export default async function CustomerDetailPage({
         </div>
       </div>
 
+      {promoEligible ? (
+        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+            Indikator Promo
+          </p>
+          <p className="mt-2 text-lg font-bold text-emerald-700">
+            CUSTOMER INI BERHAK MENDAPAT PROMO 1%
+          </p>
+          <p className="mt-2 text-sm text-emerald-700">
+            Akumulasi belanja dari nama dan nomor HP ini sudah mencapai minimal
+            Rp 100.000.000.
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Total Pesanan</p>
-          <p className="mt-2 text-2xl font-bold text-slate-950">{totalOrders}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">
+            {totalOrders}
+          </p>
         </div>
 
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
@@ -73,7 +83,7 @@ export default async function CustomerDetailPage({
 
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Status</p>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             {repeatCustomer ? (
               <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
                 Pelanggan Setia
@@ -83,6 +93,12 @@ export default async function CustomerDetailPage({
                 Pelanggan Baru
               </span>
             )}
+
+            {promoEligible ? (
+              <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                Promo 1%
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -101,6 +117,12 @@ export default async function CustomerDetailPage({
             <span className="font-medium text-slate-900">No HP:</span>{" "}
             {customer.phone}
           </p>
+          <p>
+            <span className="font-medium text-slate-900">
+              Digabung dari record customer:
+            </span>{" "}
+            {customer.sourceCustomerIds.length}
+          </p>
         </div>
       </div>
 
@@ -113,11 +135,11 @@ export default async function CustomerDetailPage({
           {customer.orders.map((order: any) => {
             const totalQty = order.items.reduce(
               (sum: any, item: any) => sum + item.quantity,
-              0
+              0,
             );
             const totalPo = order.items.reduce(
               (sum: any, item: any) => sum + item.poQty,
-              0
+              0,
             );
 
             return (
@@ -168,7 +190,8 @@ export default async function CustomerDetailPage({
                       <span className="font-medium text-slate-900">
                         {item.product.name}
                       </span>{" "}
-                      • Jml {item.quantity} • Ready {item.readyQty} • PO {item.poQty}
+                      • Jml {item.quantity} • Ready {item.readyQty} • PO{" "}
+                      {item.poQty}
                     </div>
                   ))}
                 </div>
