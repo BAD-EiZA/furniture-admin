@@ -37,7 +37,7 @@ export default async function CustomersPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] border border-slate-200/70 bg-white/90 p-5 shadow-sm sm:p-6">
+      <div className="rounded-[28px] border border-slate-200/70 bg-white/90 p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-slate-950">Pelanggan</h1>
         <p className="mt-2 text-sm text-slate-500">
           Daftar pelanggan yang sudah memiliki pesanan terverifikasi.
@@ -45,7 +45,6 @@ export default async function CustomersPage({
       </div>
 
       <form className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
             type="text"
@@ -56,7 +55,7 @@ export default async function CustomersPage({
           />
           <button
             type="submit"
-            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800 sm:w-auto"
+            className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800"
           >
             Cari
           </button>
@@ -78,11 +77,10 @@ export default async function CustomersPage({
           </p>
         </div>
 
-        <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+        <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Pelanggan Sekali Pesan</p>
           <p className="mt-2 text-2xl font-bold text-slate-900">
             {
-              customers.filter((customer: any) => customer.orders.length === 1)
               customers.filter((customer: any) => customer.orders.length === 1)
                 .length
             }
@@ -227,17 +225,7 @@ export default async function CustomersPage({
                             </p>
                           </div>
                         </td>
-                    return (
-                      <tr key={customer.id} className="border-t">
-                        <td className="px-4 py-3">
-                          <div>
-                            <p className="font-medium text-slate-900">
-                              {customer.name}
-                            </p>
-                          </div>
-                        </td>
 
-                        <td className="px-4 py-3">{customer.phone}</td>
                         <td className="px-4 py-3">{customer.phone}</td>
 
                         <td className="px-4 py-3">
@@ -251,22 +239,9 @@ export default async function CustomersPage({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          {isRepeat ? (
-                            <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                              Pelanggan Setia
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                              Pelanggan Baru
-                            </span>
-                          )}
-                        </td>
 
                         <td className="px-4 py-3">{customer.orders.length}</td>
-                        <td className="px-4 py-3">{customer.orders.length}</td>
 
-                        <td className="px-4 py-3">{totalItems}</td>
                         <td className="px-4 py-3">{totalItems}</td>
 
                         <td className="px-4 py-3">
@@ -289,21 +264,6 @@ export default async function CustomersPage({
                     );
                   })}
 
-                  {customers.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-4 py-8 text-center text-slate-500"
-                      >
-                        Belum ada data pelanggan
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
                   {customers.length === 0 ? (
                     <tr>
                       <td
