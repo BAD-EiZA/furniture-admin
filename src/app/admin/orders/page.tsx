@@ -9,6 +9,10 @@ function formatPaymentMethod(method: string) {
   return method;
 }
 
+function formatDate(value: Date) {
+  return value.toISOString();
+}
+
 export default async function OrdersPage({
   searchParams,
 }: {
@@ -39,35 +43,44 @@ export default async function OrdersPage({
   const where = {
     ...(q
       ? {
-        OR: [
-          { orderCode: { contains: q, mode: "insensitive" as const } },
-          { customerNameDraft: { contains: q, mode: "insensitive" as const } },
-          { customerPhoneDraft: { contains: q, mode: "insensitive" as const } },
-          { customerAddressDraft: { contains: q, mode: "insensitive" as const } },
-        ],
-      }
+          OR: [
+            { orderCode: { contains: q, mode: "insensitive" as const } },
+            {
+              customerNameDraft: { contains: q, mode: "insensitive" as const },
+            },
+            {
+              customerPhoneDraft: { contains: q, mode: "insensitive" as const },
+            },
+            {
+              customerAddressDraft: {
+                contains: q,
+                mode: "insensitive" as const,
+              },
+            },
+          ],
+        }
       : {}),
     ...(status ? { status: status as any } : {}),
     ...(paymentMethod ? { paymentMethod: paymentMethod as any } : {}),
     ...(salesId ? { salesId } : {}),
     ...(dateFrom || dateTo
       ? {
-        createdAt: {
-          ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00.000Z`) } : {}),
-          ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
-        },
-      }
+          createdAt: {
+            ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00.000Z`) } : {}),
+            ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+          },
+        }
       : {}),
     ...(hasPo === "true"
       ? {
-        items: {
-          some: {
-            poQty: {
-              gt: 0,
+          items: {
+            some: {
+              poQty: {
+                gt: 0,
+              },
             },
           },
-        },
-      }
+        }
       : {}),
   };
 
@@ -129,20 +142,20 @@ export default async function OrdersPage({
 
         <a
           href={`/api/admin/orders/export?${queryBase.toString()}`}
-          className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 sm:w-auto"
         >
           Ekspor Excel
         </a>
       </div>
 
       <form className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <input
             type="text"
             name="q"
             defaultValue={q}
             placeholder="Cari pesanan, nama, HP, alamat..."
-            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
+            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500 sm:col-span-2 xl:col-span-2"
           />
 
           <select
@@ -208,92 +221,109 @@ export default async function OrdersPage({
 
           <button
             type="submit"
-            className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800"
+            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800"
           >
             Filter
           </button>
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-slate-600">
-              <tr>
-                <th className="px-4 py-3">Pesanan</th>
-                <th className="px-4 py-3">Pelanggan</th>
-                <th className="px-4 py-3">Sales</th>
-                <th className="px-4 py-3">Pembayaran</th>
-                <th className="px-4 py-3">Item</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => {
-                const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
-                const totalPo = order.items.reduce((sum, item) => sum + item.poQty, 0);
+      <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+        {orders.length === 0 ? (
+          <div className="px-4 py-10 text-center text-slate-500">
+            Belum ada pesanan
+          </div>
+        ) : (
+          <>
+            <div className="block md:hidden">
+              <div className="space-y-4 p-4">
+                {orders.map((order) => {
+                  const totalQty = order.items.reduce(
+                    (sum, item) => sum + item.quantity,
+                    0,
+                  );
+                  const totalPo = order.items.reduce(
+                    (sum, item) => sum + item.poQty,
+                    0,
+                  );
 
-                return (
-                  <tr key={order.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{order.orderCode}</p>
-                        <p className="text-xs text-slate-500">
-                          {order.createdAt.toISOString()}
-                        </p>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{order.customerNameDraft}</p>
-                        <p className="text-xs text-slate-500">
-                          {order.customerPhoneDraft}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400 line-clamp-2">
-                          {order.customerAddressDraft}
-                        </p>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">{order.sales.name}</td>
-
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">
-                          {formatPaymentMethod(order.paymentMethod)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {order.adjustmentType} • Rp{" "}
-                          {Number(order.adjustmentValue).toLocaleString("id-ID")}
-                        </p>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div>
-                        <p>{order.items.length} item</p>
-                        <p className="text-xs text-slate-500">
-                          Jml {totalQty}
-                        </p>
-                        {totalPo > 0 ? (
-                          <p className="mt-1 inline-flex rounded-full bg-yellow-50 px-2 py-1 text-[11px] font-medium text-yellow-700">
-                            PO {totalPo}
+                  return (
+                    <div
+                      key={order.id}
+                      className="rounded-2xl border border-slate-200/70 bg-slate-50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">
+                            {order.orderCode}
                           </p>
-                        ) : null}
+                          <p className="mt-1 text-xs text-slate-500">
+                            {formatDate(order.createdAt)}
+                          </p>
+                        </div>
+
+                        <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                          {order.status}
+                        </span>
                       </div>
-                    </td>
 
-                    <td className="px-4 py-3">
-                      Rp {Number(order.total).toLocaleString("id-ID")}
-                    </td>
+                      <div className="mt-4 space-y-2 text-sm text-slate-600">
+                        <div className="rounded-xl bg-white px-3 py-2">
+                          <span className="font-medium text-slate-900">
+                            Pelanggan:
+                          </span>{" "}
+                          {order.customerNameDraft}
+                          <div className="mt-1 text-xs text-slate-500">
+                            {order.customerPhoneDraft}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {order.customerAddressDraft}
+                          </div>
+                        </div>
 
-                    <td className="px-4 py-3">{order.status}</td>
+                        <div className="rounded-xl bg-white px-3 py-2">
+                          <span className="font-medium text-slate-900">
+                            Sales:
+                          </span>{" "}
+                          {order.sales.name}
+                        </div>
 
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
+                        <div className="rounded-xl bg-white px-3 py-2">
+                          <span className="font-medium text-slate-900">
+                            Pembayaran:
+                          </span>{" "}
+                          {formatPaymentMethod(order.paymentMethod)}
+                          <div className="mt-1 text-xs text-slate-500">
+                            {order.adjustmentType} • Rp{" "}
+                            {Number(order.adjustmentValue).toLocaleString(
+                              "id-ID",
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-white px-3 py-2">
+                          <span className="font-medium text-slate-900">
+                            Item:
+                          </span>{" "}
+                          {order.items.length} item • Jml {totalQty}
+                          {totalPo > 0 ? (
+                            <div className="mt-2">
+                              <span className="inline-flex rounded-full bg-yellow-50 px-2 py-1 text-[11px] font-medium text-yellow-700">
+                                PO {totalPo}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="rounded-xl bg-white px-3 py-2">
+                          <span className="font-medium text-slate-900">
+                            Total:
+                          </span>{" "}
+                          Rp {Number(order.total).toLocaleString("id-ID")}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
                         <Link
                           href={`/admin/orders/${order.id}`}
                           className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
@@ -328,24 +358,157 @@ export default async function OrdersPage({
                           </a>
                         ) : null}
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                    Belum ada pesanan
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-left text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3">Pesanan</th>
+                    <th className="px-4 py-3">Pelanggan</th>
+                    <th className="px-4 py-3">Sales</th>
+                    <th className="px-4 py-3">Pembayaran</th>
+                    <th className="px-4 py-3">Item</th>
+                    <th className="px-4 py-3">Total</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => {
+                    const totalQty = order.items.reduce(
+                      (sum, item) => sum + item.quantity,
+                      0,
+                    );
+                    const totalPo = order.items.reduce(
+                      (sum, item) => sum + item.poQty,
+                      0,
+                    );
+
+                    return (
+                      <tr key={order.id} className="border-t">
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-medium">{order.orderCode}</p>
+                            <p className="text-xs text-slate-500">
+                              {formatDate(order.createdAt)}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-medium">
+                              {order.customerNameDraft}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {order.customerPhoneDraft}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-400 line-clamp-2">
+                              {order.customerAddressDraft}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">{order.sales.name}</td>
+
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-medium">
+                              {formatPaymentMethod(order.paymentMethod)}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {order.adjustmentType} • Rp{" "}
+                              {Number(order.adjustmentValue).toLocaleString(
+                                "id-ID",
+                              )}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <div>
+                            <p>{order.items.length} item</p>
+                            <p className="text-xs text-slate-500">
+                              Jml {totalQty}
+                            </p>
+                            {totalPo > 0 ? (
+                              <p className="mt-1 inline-flex rounded-full bg-yellow-50 px-2 py-1 text-[11px] font-medium text-yellow-700">
+                                PO {totalPo}
+                              </p>
+                            ) : null}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          Rp {Number(order.total).toLocaleString("id-ID")}
+                        </td>
+
+                        <td className="px-4 py-3">{order.status}</td>
+
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={`/admin/orders/${order.id}`}
+                              className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                            >
+                              Detail
+                            </Link>
+
+                            <Link
+                              href={`/status/${order.orderCode}`}
+                              className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                            >
+                              Status
+                            </Link>
+
+                            {order.paymentProof ? (
+                              <a
+                                href={order.paymentProof.fileUrl}
+                                target="_blank"
+                                className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                              >
+                                Bukti Bayar
+                              </a>
+                            ) : null}
+
+                            {order.invoice ? (
+                              <a
+                                href={`/api/orders/invoice/${order.orderCode}`}
+                                target="_blank"
+                                className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                              >
+                                Invoice PDF
+                              </a>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-4 py-8 text-center text-slate-500"
+                      >
+                        Belum ada pesanan
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-slate-500">
           Halaman {page} dari {totalPages} • Total {total} pesanan
         </p>
@@ -356,10 +519,11 @@ export default async function OrdersPage({
               ...Object.fromEntries(queryBase.entries()),
               page: String(Math.max(1, page - 1)),
             }).toString()}`}
-            className={`rounded-lg px-3 py-2 ${page <= 1
-              ? "pointer-events-none bg-slate-100 text-slate-400"
-              : "bg-slate-900 text-white hover:bg-slate-800"
-              }`}
+            className={`flex-1 rounded-lg px-3 py-2 text-center sm:flex-none ${
+              page <= 1
+                ? "pointer-events-none bg-slate-100 text-slate-400"
+                : "bg-slate-900 text-white hover:bg-slate-800"
+            }`}
           >
             Sebelumnya
           </Link>
@@ -369,10 +533,11 @@ export default async function OrdersPage({
               ...Object.fromEntries(queryBase.entries()),
               page: String(Math.min(totalPages, page + 1)),
             }).toString()}`}
-            className={`rounded-lg px-3 py-2 ${page >= totalPages
-              ? "pointer-events-none bg-slate-100 text-slate-400"
-              : "bg-slate-900 text-white hover:bg-slate-800"
-              }`}
+            className={`flex-1 rounded-lg px-3 py-2 text-center sm:flex-none ${
+              page >= totalPages
+                ? "pointer-events-none bg-slate-100 text-slate-400"
+                : "bg-slate-900 text-white hover:bg-slate-800"
+            }`}
           >
             Selanjutnya
           </Link>

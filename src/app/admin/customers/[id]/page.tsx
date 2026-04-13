@@ -52,7 +52,7 @@ export default async function CustomerDetailPage({
             Indikator Promo
           </p>
           <p className="mt-2 text-lg font-bold text-emerald-700">
-            CUSTOMER INI BERHAK MENDAPAT PROMO 10%
+            CUSTOMER INI BERHAK MENDAPAT PROMO 1%
           </p>
           <p className="mt-2 text-sm text-emerald-700">
             Akumulasi belanja dari nama dan nomor HP ini sudah mencapai minimal
