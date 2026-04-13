@@ -12,11 +12,11 @@ export default async function CustomersPage({
 
   const where = q
     ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" as const } },
-          { phone: { contains: q, mode: "insensitive" as const } },
-        ],
-      }
+      OR: [
+        { name: { contains: q, mode: "insensitive" as const } },
+        { phone: { contains: q, mode: "insensitive" as const } },
+      ],
+    }
     : {};
 
   const customers = await getCustomerList(q);
@@ -24,9 +24,9 @@ export default async function CustomersPage({
   return (
     <div className="space-y-6">
       <div className="rounded-[28px] border border-slate-200/70 bg-white/90 p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-950">Customers</h1>
+        <h1 className="text-2xl font-bold text-slate-950">Pelanggan</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Daftar customer yang sudah memiliki pesanan terverifikasi.
+          Daftar pelanggan yang sudah memiliki pesanan terverifikasi.
         </p>
       </div>
 
@@ -50,21 +50,21 @@ export default async function CustomersPage({
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Total Customer</p>
+          <p className="text-sm text-slate-500">Total Pelanggan</p>
           <p className="mt-2 text-2xl font-bold text-slate-950">
             {customers.length}
           </p>
         </div>
 
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Repeat Customer</p>
+          <p className="text-sm text-slate-500">Pelanggan Setia</p>
           <p className="mt-2 text-2xl font-bold text-blue-700">
             {customers.filter((customer) => customer.orders.length > 1).length}
           </p>
         </div>
 
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Single Order Customer</p>
+          <p className="text-sm text-slate-500">Pelanggan Sekali Pesan</p>
           <p className="mt-2 text-2xl font-bold text-slate-900">
             {
               customers.filter((customer) => customer.orders.length === 1)
@@ -81,18 +81,18 @@ export default async function CustomersPage({
               <th className="px-4 py-3">Nama</th>
               <th className="px-4 py-3">No HP</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Total Order</th>
-              <th className="px-4 py-3">Total Item</th>
+              <th className="px-4 py-3">Total Pesanan</th>
+              <th className="px-4 py-3">Jumlah Item</th>
               <th className="px-4 py-3">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {customers.map((customer) => {
               const totalItems = customer.orders.reduce(
-                (sum:any, order:any) =>
+                (sum: any, order: any) =>
                   sum +
                   order.items.reduce(
-                    (itemSum:any, item:any) => itemSum + item.quantity,
+                    (itemSum: any, item: any) => itemSum + item.quantity,
                     0,
                   ),
                 0,
@@ -115,11 +115,11 @@ export default async function CustomersPage({
                   <td className="px-4 py-3">
                     {isRepeat ? (
                       <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                        Repeat Customer
+                        Pelanggan Setia
                       </span>
                     ) : (
                       <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                        New Customer
+                        Pelanggan Baru
                       </span>
                     )}
                   </td>
@@ -146,7 +146,7 @@ export default async function CustomersPage({
                   colSpan={6}
                   className="px-4 py-8 text-center text-slate-500"
                 >
-                  Belum ada customer
+                  Belum ada data pelanggan
                 </td>
               </tr>
             ) : null}

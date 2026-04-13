@@ -20,9 +20,16 @@ export default async function CustomerDetailPage({
 
   if (!customer) notFound();
 
-  const totalOrders = customer.aggregatedOrderCount;
-  const totalSpend = customer.aggregatedTotalSpend;
-  const totalItems = customer.aggregatedTotalItems;
+  const totalOrders = customer.orders.length;
+  const totalSpend = customer.orders.reduce(
+    (sum:any, order:any) => sum + Number(order.total),
+    0
+  );
+  const totalItems = customer.orders.reduce(
+    (sum:any, order:any) =>
+      sum + order.items.reduce((itemSum:any, item:any) => itemSum + item.quantity, 0),
+    0
+  );
   const repeatCustomer = totalOrders > 1;
   const promoEligible = customer.promoEligible;
 
@@ -64,9 +71,7 @@ export default async function CustomerDetailPage({
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Total Pesanan</p>
-          <p className="mt-2 text-2xl font-bold text-slate-950">
-            {totalOrders}
-          </p>
+          <p className="mt-2 text-2xl font-bold text-slate-950">{totalOrders}</p>
         </div>
 
         <div className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
@@ -135,11 +140,11 @@ export default async function CustomerDetailPage({
           {customer.orders.map((order: any) => {
             const totalQty = order.items.reduce(
               (sum: any, item: any) => sum + item.quantity,
-              0,
+              0
             );
             const totalPo = order.items.reduce(
               (sum: any, item: any) => sum + item.poQty,
-              0,
+              0
             );
 
             return (
@@ -190,8 +195,7 @@ export default async function CustomerDetailPage({
                       <span className="font-medium text-slate-900">
                         {item.product.name}
                       </span>{" "}
-                      • Jml {item.quantity} • Ready {item.readyQty} • PO{" "}
-                      {item.poQty}
+                      • Jml {item.quantity} • Ready {item.readyQty} • PO {item.poQty}
                     </div>
                   ))}
                 </div>

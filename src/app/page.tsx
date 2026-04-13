@@ -1,7 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
-  Sparkles,
   MapPin,
   Phone,
   Mail,
@@ -14,8 +12,8 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { getSiteSetting } from "@/lib/site-settings";
-import CartBadge from "@/components/cart-badge";
 import HomeLineupCarousel from "@/components/home-lineup-carousel";
+import HomeHeroCarousel from "@/components/home-hero-carousel";
 import {
   InstagramIcon,
   FacebookIcon,
@@ -61,10 +59,18 @@ export default async function HomePage() {
   const featuredProducts =
     featuredProductsRaw.length > 0 ? featuredProductsRaw : fallbackProducts;
 
-  const heroBackground =
-    featuredProducts[0]?.medias?.[0]?.type === "IMAGE"
-      ? featuredProducts[0].medias[0].fileUrl
-      : null;
+  const heroSlides = [
+    {
+      id: "hero-default",
+      image:
+        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809996/hero_z54weq.jpg",
+    },
+    {
+      id: "hero-2",
+      image:
+        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1776009441/WhatsApp_Image_2026-04-12_at_22.54.17_spjz9v.jpg",
+    },
+  ]
 
   const lineupCards = [
     {
@@ -118,116 +124,17 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-[#f7f8fb] text-slate-900">
       <section className="relative overflow-hidden bg-black text-white">
-        {heroBackground ? (
-          <div className="absolute inset-0">
-            <img
-              src="https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809996/hero_z54weq.jpg"
-              alt="HIRONA hero"
-              className="h-full w-full object-cover opacity-30"
-            />
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.35),_transparent_28%),linear-gradient(to_bottom,_#10151d,_#000000)]" />
-        )}
-
-       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/30" />
-
-        <div className="relative z-10">
-          <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-white/95 shadow-sm sm:h-14 sm:w-14">
-                <Image
-                  src="/images/hirona-logo.png"
-                  alt="Hirona Homeware Logo"
-                  fill
-                  className="object-contain p-1.5"
-                  priority
-                />
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold tracking-[0.2em] text-white sm:text-sm">
-                  HIRONA
-                </p>
-                <p className="truncate text-[10px] text-white/60 sm:text-xs">
-                  HOMEWARE
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden items-center gap-6 lg:flex">
-              <Link
-                href="/catalog"
-                className="text-sm text-white/90 hover:text-white"
-              >
-                Katalog
-              </Link>
-              <Link
-                href="/catalog?q=dapur"
-                className="text-sm text-white/70 hover:text-white"
-              >
-                Dapur
-              </Link>
-              <Link
-                href="/catalog?q=furnitur"
-                className="text-sm text-white/70 hover:text-white"
-              >
-                Furnitur
-              </Link>
-              <Link
-                href="/catalog?q=kebersihan"
-                className="text-sm text-white/70 hover:text-white"
-              >
-                Kebersihan
-              </Link>
-            </div>
-
-            <CartBadge />
-          </nav>
-
-          <div className="mx-auto flex min-h-[620px] max-w-7xl flex-col items-center justify-center px-4 pb-28 pt-8 text-center sm:min-h-[700px] sm:px-6 sm:pb-36 lg:px-8">
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-white/95 backdrop-blur sm:px-5 sm:py-3">
-              <div className="relative h-6 w-6 overflow-hidden rounded-full bg-white/95 sm:h-7 sm:w-7">
-                <Image
-                  src="/images/hirona-logo.png"
-                  alt="Hirona Logo"
-                  fill
-                  className="object-contain p-0.5"
-                  priority
-                />
-              </div>
-              <span className="text-sm font-semibold tracking-wide sm:text-base">
-                PT Hirona Inspirasi Nusantara
-              </span>
-            </div>
-
-            <h1 className="mt-6 max-w-4xl text-3xl font-bold tracking-tight text-white sm:mt-8 sm:text-5xl lg:text-6xl">
-              {setting.homepageHeadline ||
-                "Distributor alat rumah tangga dan perabot berkualitas untuk kebutuhan rumah, retailer, dan instansi di Kalimantan Timur."}
-            </h1>
-
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-white/75 sm:text-lg sm:leading-8">
-              {setting.homepageSubheadline ||
-                "PT Hirona Inspirasi Nusantara menyediakan berbagai kebutuhan rumah tangga modern dengan distribusi yang efisien, produk fungsional, dan pelayanan profesional."}
-            </p>
-
-            <div className="mt-8 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:flex-wrap">
-              <Link
-                href="/catalog"
-                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-br from-[#0e3d6c] via-[#125EA9] to-[#2E4FAE] px-7 py-3.5 text-sm font-semibold text-white transition sm:w-auto"
-              >
-                Jelajahi Katalog
-              </Link>
-
-              <Link
-                href="/checkout"
-                className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15 sm:w-auto"
-              >
-                Lihat Keranjang
-              </Link>
-            </div>
-          </div>
-        </div>
+        <HomeHeroCarousel
+          slides={heroSlides}
+          headline={
+            setting.homepageHeadline ||
+            "Distributor alat rumah tangga dan perabot berkualitas untuk kebutuhan rumah, retailer, dan instansi di Kalimantan Timur."
+          }
+          subheadline={
+            setting.homepageSubheadline ||
+            "PT Hirona Inspirasi Nusantara menyediakan berbagai kebutuhan rumah tangga modern dengan distribusi yang efisien, produk fungsional, dan pelayanan profesional."
+          }
+        />
 
         <div className="relative z-20 mx-auto -mt-16 max-w-7xl px-4 pb-10 sm:-mt-20 sm:px-6 lg:px-8">
           <HomeLineupCarousel items={lineupCards} />
