@@ -58,9 +58,6 @@ export default async function StockHistoryPage({
             <tbody>
               {histories.map((history) => (
                 <tr key={history.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3 text-slate-500">
-                    {history.createdAt.toISOString()}
-                  </td>
                   <td className="px-4 py-3 font-medium text-slate-900">
                     {history.product.name}
                   </td>
