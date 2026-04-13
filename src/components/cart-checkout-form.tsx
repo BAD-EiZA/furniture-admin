@@ -10,9 +10,7 @@ import {
   Copy,
   Landmark,
   QrCode,
-  Truck,
   MapPinned,
-  CheckCircle2,
 } from "lucide-react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
@@ -65,6 +63,8 @@ const CITY_OPTIONS = [
   "Bengalon",
 ] as const;
 
+const CHECKOUT_DRAFT_KEY = "hirona_checkout_draft_v1";
+
 function getBulkDiscountPercent(quantity: number, pcsPerBal = 24) {
   if (pcsPerBal > 0 && quantity >= pcsPerBal) return 0.2;
   if (quantity >= 12) return 0.05;
@@ -109,23 +109,40 @@ export default function CartCheckoutForm({
   const [paymentNote, setPaymentNote] = useState("");
   const [acceptPoItems, setAcceptPoItems] = useState(false);
   const [paymentProof, setPaymentProof] = useState<PaymentProofState>(null);
-  const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem(CHECKOUT_DRAFT_KEY);
+      if (!raw) return;
+
+      const draft = JSON.parse(raw);
+
+      setCustomerName(draft.customerName || "");
+      setCustomerPhone(draft.customerPhone || "");
+      setCustomerAddress(draft.customerAddress || "");
+      setCustomerDistrict(draft.customerDistrict || "");
+      setCustomerCityDropdown(draft.customerCityDropdown || "");
+      setCustomerCityText(draft.customerCityText || "");
+      setDeliveryAreaType(draft.deliveryAreaType || "DALAM_KOTA");
+      setSalesId(draft.salesId || "");
+      setPaymentMethod(draft.paymentMethod || "");
+      setPaymentNote(draft.paymentNote || "");
+    } catch (loadError) {
+      console.error("FAILED_TO_LOAD_CHECKOUT_DRAFT", loadError);
+    }
+  }, []);
+
+  useEffect(() => {
     if (salesOptions.length > 0 && !salesId) {
       setSalesId(salesOptions[0].id);
     }
   }, [salesOptions, salesId]);
-
-  useEffect(() => {
-    if (siteSetting.bankAccounts.length > 0 && !selectedBankAccountId) {
-      setSelectedBankAccountId(siteSetting.bankAccounts[0].id);
-    }
-  }, [siteSetting.bankAccounts, selectedBankAccountId]);
 
   useEffect(() => {
     async function loadProducts() {
@@ -157,14 +174,6 @@ export default function CartCheckoutForm({
 
   const customerCity =
     deliveryAreaType === "DALAM_KOTA" ? customerCityDropdown : customerCityText;
-
-  const selectedBankAccount = useMemo(() => {
-    return (
-      siteSetting.bankAccounts.find(
-        (account) => account.id === selectedBankAccountId,
-      ) || null
-    );
-  }, [siteSetting.bankAccounts, selectedBankAccountId]);
 
   const mergedItems = useMemo(() => {
     return items.map((cartItem) => {
@@ -248,6 +257,40 @@ export default function CartCheckoutForm({
       total: subtotal,
     };
   }, [subtotal, paymentMethod]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const draft = {
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerDistrict,
+        customerCityDropdown,
+        customerCityText,
+        deliveryAreaType,
+        salesId,
+        paymentMethod,
+        paymentNote,
+      };
+
+      window.localStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft));
+    } catch (saveError) {
+      console.error("FAILED_TO_SAVE_CHECKOUT_DRAFT", saveError);
+    }
+  }, [
+    customerName,
+    customerPhone,
+    customerAddress,
+    customerDistrict,
+    customerCityDropdown,
+    customerCityText,
+    deliveryAreaType,
+    salesId,
+    paymentMethod,
+    paymentNote,
+  ]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -345,6 +388,7 @@ export default function CartCheckoutForm({
       });
 
       clearCart();
+
       router.push(
         `/order-success?orderCode=${encodeURIComponent(data.orderCode)}`,
       );
