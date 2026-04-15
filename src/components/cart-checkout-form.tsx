@@ -343,7 +343,7 @@ export default function CartCheckoutForm({
         return;
       }
 
-      
+
       if (hasPoItems && !acceptPoItems) {
         setError(
           "Terdapat item pre-order. Silakan centang persetujuan untuk melanjutkan.",
@@ -724,7 +724,7 @@ export default function CartCheckoutForm({
               Nama Sales *
             </label>
             <select
-              value={salesId}
+              value={""}
               onChange={(e) => setSalesId(e.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
             >
