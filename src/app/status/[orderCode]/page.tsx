@@ -532,7 +532,7 @@ HIRONA HOMEWARE`
                 >
                   <span className="inline-flex items-center">
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    Hubungi Sales
+                     Hubungi sales untuk konfirmasi pesanan anda
                   </span>
                 </a>
               ) : null}
