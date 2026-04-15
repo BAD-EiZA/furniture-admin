@@ -33,10 +33,10 @@ export default async function AdminLayout({
       <div className="flex min-h-screen">
         <AdminSidebar isSuperAdmin={isSuperAdmin} />
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/70 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-4 px-4 py-4 lg:px-8">
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button variant="outline" size="icon" className="lg:hidden">
@@ -46,7 +46,7 @@ export default async function AdminLayout({
 
                   <SheetContent
                     side="left"
-                    className="w-72 bg-slate-950 p-0 text-white"
+                    className="w-[86vw] max-w-[320px] border-r border-white/10 bg-transparent p-0 text-white"
                   >
                     <AdminSidebar isSuperAdmin={isSuperAdmin} mobile />
                   </SheetContent>
@@ -105,7 +105,7 @@ export default async function AdminLayout({
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+          <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">{children}</main>
         </div>
       </div>
     </div>
