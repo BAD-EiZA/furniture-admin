@@ -5,13 +5,7 @@ import Link from "next/link";
 import { UploadButton } from "@uploadthing/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  Copy,
-  Landmark,
-  QrCode,
-  MapPinned,
-} from "lucide-react";
+import { AlertTriangle, Copy, Landmark, QrCode, MapPinned } from "lucide-react";
 
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import { useCart } from "@/hooks/use-cart";
@@ -137,12 +131,6 @@ export default function CartCheckoutForm({
       console.error("FAILED_TO_LOAD_CHECKOUT_DRAFT", loadError);
     }
   }, []);
-
-  useEffect(() => {
-    if (salesOptions.length > 0 && !salesId) {
-      setSalesId(salesOptions[0].id);
-    }
-  }, [salesOptions, salesId]);
 
   useEffect(() => {
     async function loadProducts() {
@@ -342,7 +330,6 @@ export default function CartCheckoutForm({
         setError("Bukti pembayaran wajib untuk metode transfer");
         return;
       }
-
 
       if (hasPoItems && !acceptPoItems) {
         setError(
@@ -724,11 +711,11 @@ export default function CartCheckoutForm({
               Nama Sales *
             </label>
             <select
-              value={""}
+              value={salesId}
               onChange={(e) => setSalesId(e.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-[#125EA9]"
             >
-              <option value="">Pilih sales</option>
+              <option value="">Pilih Sales</option>
               {salesOptions.map((sales) => (
                 <option key={sales.id} value={sales.id}>
                   {sales.name}
