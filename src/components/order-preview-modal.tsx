@@ -45,9 +45,9 @@ type OrderPreviewData = {
   subtotal: number | string;
   shippingCost?: number | string | null;
   total: number | string;
-  sales: {
-    name: string;
-  };
+  sales?: {
+    name?: string | null;
+  } | null;
   paymentProof?: {
     fileUrl: string;
   } | null;
@@ -313,7 +313,7 @@ export default function OrderPreviewModal({
                           <span className="font-medium text-slate-900">
                             Sales:
                           </span>{" "}
-                          {order.sales.name}
+                          {order.sales?.name || "-"}
                         </p>
                         <p>
                           <span className="font-medium text-slate-900">
@@ -568,4 +568,3 @@ export default function OrderPreviewModal({
     </>
   );
 }
-

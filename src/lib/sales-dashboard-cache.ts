@@ -46,14 +46,30 @@ export async function getSalesDashboardSummary(userId: string) {
       where: {
         salesId: userId,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
       take: 10,
       include: {
-        items: {
-          include: { product: true },
+        sales: {
+          select: {
+            name: true,
+          },
         },
-        paymentProof: true,
+        items: {
+          include: {
+            product: {
+              include: {
+                medias: {
+                  orderBy: { sortOrder: "asc" },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
         invoice: true,
+        paymentProof: true,
       },
     }),
   ]);
