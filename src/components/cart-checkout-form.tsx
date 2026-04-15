@@ -343,6 +343,7 @@ export default function CartCheckoutForm({
         return;
       }
 
+      
       if (hasPoItems && !acceptPoItems) {
         setError(
           "Terdapat item pre-order. Silakan centang persetujuan untuk melanjutkan.",
