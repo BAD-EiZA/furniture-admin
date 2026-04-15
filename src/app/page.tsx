@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 import {
   MapPin,
   Phone,
@@ -47,6 +48,7 @@ function buildWhatsappLink(phone?: string | null, message?: string) {
 }
 
 export default async function HomePage() {
+  noStore();
   const setting = await getSiteSetting();
 
   const featuredProductsRaw = await prisma.product.findMany({

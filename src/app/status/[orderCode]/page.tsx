@@ -70,6 +70,20 @@ function getStatusUI(status: string) {
   }
 }
 
+function normalizeWhatsappNumber(phone?: string | null) {
+  if (!phone) return "";
+
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) return "";
+
+  if (digits.startsWith("0")) {
+    return `62${digits.slice(1)}`;
+  }
+
+  return digits;
+}
+
 function formatPaymentMethod(method: string) {
   if (method === "TRANSFER") return "Transfer / Bayar di Muka";
   if (method === "COD") return "COD";
@@ -144,9 +158,9 @@ Metode Pembayaran: ${formatPaymentMethod(order.paymentMethod)}
 Mohon bantuannya. Terima kasih.`;
 
   const whatsappOrderHref = order.sales.phone
-    ? `https://wa.me/${order.sales.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-        whatsappOrderMessage,
-      )}`
+    ? `https://wa.me/${normalizeWhatsappNumber(
+        order.sales.phone,
+      )}?text=${encodeURIComponent(whatsappOrderMessage)}`
     : "";
 
   const invoicePdfHref = order.invoice
@@ -173,9 +187,9 @@ HIRONA HOMEWARE`
 
   const whatsappInvoiceHref =
     order.invoice && order.customerPhoneDraft
-      ? `https://wa.me/${order.customerPhoneDraft.replace(/\D/g, "")}?text=${encodeURIComponent(
-          whatsappInvoiceMessage,
-        )}`
+      ? `https://wa.me/${normalizeWhatsappNumber(
+          order.customerPhoneDraft,
+        )}?text=${encodeURIComponent(whatsappInvoiceMessage)}`
       : "";
 
   return (

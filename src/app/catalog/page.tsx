@@ -4,6 +4,7 @@ import { Search, Sparkles } from "lucide-react";
 import CartBadge from "@/components/cart-badge";
 import { getCatalogProducts } from "@/lib/catalog-cache";
 import QuickAddToCartButton from "@/components/quick-add-to-cart-button";
+import MyOrdersPopover from "@/components/my-orders-popover";
 
 export default async function CatalogPage({
   searchParams,
@@ -37,8 +38,8 @@ export default async function CatalogPage({
             </div>
 
             <div className="flex items-center gap-3">
+              <MyOrdersPopover />
               <CartBadge />
-
               <Link
                 href="/"
                 className="inline-flex rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
