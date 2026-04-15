@@ -20,6 +20,32 @@ import {
   TikTokIcon,
 } from "@/components/brand-social-icons";
 
+function normalizeWhatsappNumber(phone?: string | null) {
+  if (!phone) return "";
+
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) return "";
+
+  if (digits.startsWith("0")) {
+    return `62${digits.slice(1)}`;
+  }
+
+  return digits;
+}
+
+function buildWhatsappLink(phone?: string | null, message?: string) {
+  const normalized = normalizeWhatsappNumber(phone);
+
+  if (!normalized) return "";
+
+  if (!message?.trim()) {
+    return `https://wa.me/${normalized}`;
+  }
+
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+}
+
 export default async function HomePage() {
   const setting = await getSiteSetting();
 
@@ -68,9 +94,9 @@ export default async function HomePage() {
     {
       id: "hero-2",
       image:
-        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1776009441/WhatsApp_Image_2026-04-12_at_22.54.17_spjz9v.jpg",
+        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1776220737/quality_restoration_20260415084944469.jpg_x91oem.jpg",
     },
-  ]
+  ];
 
   const lineupCards = [
     {
@@ -120,6 +146,26 @@ export default async function HomePage() {
           : undefined,
     },
   ];
+
+  const adminWhatsappHref = buildWhatsappLink(
+    setting.whatsappAdmin,
+    "Halo Admin Hirona, saya ingin bertanya mengenai produk Hirona Homeware.",
+  );
+
+  const marketingWhatsappHref = buildWhatsappLink(
+    setting.whatsappMarketing,
+    "Halo Marketing Hirona, saya ingin bertanya mengenai kerja sama atau informasi produk.",
+  );
+
+  const salesWhatsappHref = buildWhatsappLink(
+    setting.whatsappSales,
+    "Halo Sales Hirona, saya ingin bertanya mengenai pembelian produk.",
+  );
+
+  const ownerWhatsappHref = buildWhatsappLink(
+    setting.whatsappOwner,
+    "Halo Owner Hirona, saya ingin menyampaikan saran, masukan, atau pengaduan.",
+  );
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] text-slate-900">
@@ -284,56 +330,135 @@ export default async function HomePage() {
               </h3>
 
               <div className="mt-5 space-y-3">
-                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef4ff] text-[#125EA9]">
-                    <Phone className="h-4 w-4" />
+                {adminWhatsappHref ? (
+                  <a
+                    href={adminWhatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100"
+                  >
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef4ff] text-[#125EA9]">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Admin</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappAdmin}
+                      </p>
+                    </div>
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef4ff] text-[#125EA9]">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Admin</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappAdmin}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Admin</p>
-                    <p className="text-sm text-slate-500">
-                      {setting.whatsappAdmin}
-                    </p>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff7e8] text-[#C89B3C]">
-                    <MessageCircle className="h-4 w-4" />
+                {marketingWhatsappHref ? (
+                  <a
+                    href={marketingWhatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100"
+                  >
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff7e8] text-[#C89B3C]">
+                      <MessageCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Marketing</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappMarketing}
+                      </p>
+                    </div>
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff7e8] text-[#C89B3C]">
+                      <MessageCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Marketing</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappMarketing}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Marketing</p>
-                    <p className="text-sm text-slate-500">
-                      {setting.whatsappMarketing}
-                    </p>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef2ff] text-[#2E4FAE]">
-                    <Phone className="h-4 w-4" />
+                {salesWhatsappHref ? (
+                  <a
+                    href={salesWhatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100"
+                  >
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef2ff] text-[#2E4FAE]">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Sales</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappSales}
+                      </p>
+                    </div>
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef2ff] text-[#2E4FAE]">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Sales</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappSales}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Sales</p>
-                    <p className="text-sm text-slate-500">
-                      {setting.whatsappSales}
-                    </p>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                    <Phone className="h-4 w-4" />
+                {ownerWhatsappHref ? (
+                  <a
+                    href={ownerWhatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100"
+                  >
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Owner</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappOwner}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Khusus saran, masukan, atau layanan pengaduan
+                      </p>
+                    </div>
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">Owner</p>
+                      <p className="text-sm text-slate-500">
+                        {setting.whatsappOwner}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Khusus saran, masukan, atau layanan pengaduan
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-900">Owner</p>
-                    <p className="text-sm text-slate-500">
-                      {setting.whatsappOwner}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      Khusus saran, masukan, atau layanan pengaduan
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -365,6 +490,7 @@ export default async function HomePage() {
                       <a
                         href={setting.tiktokUrl}
                         target="_blank"
+                        rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <TikTokIcon className="h-4 w-4" />
@@ -376,6 +502,7 @@ export default async function HomePage() {
                       <a
                         href={setting.facebookUrl}
                         target="_blank"
+                        rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <FacebookIcon className="h-4 w-4" />
@@ -387,6 +514,7 @@ export default async function HomePage() {
                       <a
                         href={setting.instagramUrl}
                         target="_blank"
+                        rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                       >
                         <InstagramIcon className="h-4 w-4" />

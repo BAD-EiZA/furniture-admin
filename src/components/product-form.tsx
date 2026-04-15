@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadButton } from "@uploadthing/react";
 
@@ -14,20 +14,20 @@ type MediaItem = {
 };
 
 type TierPriceItem = {
-  minQty: number;
-  price: number;
+  minQty: string;
+  price: string;
   label: string;
 };
 
 type ProductFormValues = {
   name: string;
   description: string;
-  price: number;
-  stock: number;
-  readyStock: number;
+  price: string;
+  stock: string;
+  readyStock: string;
   allowPreOrder: boolean;
-  pcsPerBal: number;
-  shippingFee: number;
+  pcsPerBal: string;
+  shippingFee: string;
   isActive: boolean;
   isFeatured: boolean;
   medias: MediaItem[];
@@ -37,13 +37,62 @@ type ProductFormValues = {
 type Props = {
   mode: "create" | "edit";
   productId?: string;
-  initialValues: ProductFormValues;
+  initialValues: {
+    name: string;
+    description: string;
+    price: number;
+    stock: number;
+    readyStock: number;
+    allowPreOrder: boolean;
+    pcsPerBal: number;
+    shippingFee: number;
+    isActive: boolean;
+    isFeatured: boolean;
+    medias: MediaItem[];
+    tierPrices: {
+      minQty: number;
+      price: number;
+      label: string;
+    }[];
+  };
 };
+
+function onlyDigits(value: string) {
+  return value.replace(/[^\d]/g, "");
+}
 
 export default function ProductForm({ mode, productId, initialValues }: Props) {
   const router = useRouter();
 
-  const [values, setValues] = useState<ProductFormValues>(initialValues);
+  const normalizedInitialValues: ProductFormValues = useMemo(
+    () => ({
+      ...initialValues,
+      price: String(initialValues.price ?? ""),
+      stock: String(initialValues.stock ?? ""),
+      readyStock: String(initialValues.readyStock ?? ""),
+      pcsPerBal: String(initialValues.pcsPerBal ?? ""),
+      shippingFee: String(initialValues.shippingFee ?? ""),
+      tierPrices:
+        initialValues.tierPrices.length > 0
+          ? initialValues.tierPrices.map((tier) => ({
+              minQty: String(tier.minQty ?? ""),
+              price: String(tier.price ?? ""),
+              label: tier.label ?? "",
+            }))
+          : [
+              {
+                minQty: "1",
+                price: "",
+                label: "",
+              },
+            ],
+    }),
+    [initialValues],
+  );
+
+  const [values, setValues] = useState<ProductFormValues>(
+    normalizedInitialValues,
+  );
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -61,18 +110,18 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
       tierPrices: [
         ...prev.tierPrices,
         {
-          minQty: 1,
-          price: 0,
+          minQty: "1",
+          price: "",
           label: "",
         },
       ],
     }));
   }
 
-  function updateTier(
+  function updateTier<K extends keyof TierPriceItem>(
     index: number,
-    key: keyof TierPriceItem,
-    value: string | number,
+    key: K,
+    value: TierPriceItem[K],
   ) {
     setValues((prev) => ({
       ...prev,
@@ -102,6 +151,56 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
     setError("");
 
     try {
+      if (!values.name.trim()) {
+        setError("Nama produk wajib diisi");
+        setLoading(false);
+        return;
+      }
+
+      if (values.price.trim() === "") {
+        setError("Harga dasar wajib diisi");
+        setLoading(false);
+        return;
+      }
+
+      if (values.stock.trim() === "") {
+        setError("Total stock wajib diisi");
+        setLoading(false);
+        return;
+      }
+
+      if (values.readyStock.trim() === "") {
+        setError("Ready stock wajib diisi");
+        setLoading(false);
+        return;
+      }
+
+      if (values.pcsPerBal.trim() === "") {
+        setError("Pcs per bal wajib diisi");
+        setLoading(false);
+        return;
+      }
+
+      if (values.shippingFee.trim() === "") {
+        setError("Ongkir per produk wajib diisi");
+        setLoading(false);
+        return;
+      }
+
+      const invalidTier = values.tierPrices.find(
+        (tier) =>
+          tier.minQty.trim() === "" ||
+          tier.price.trim() === "" ||
+          Number(tier.minQty) < 1 ||
+          Number(tier.price) < 0,
+      );
+
+      if (invalidTier) {
+        setError("Semua tier pricing wajib diisi dengan benar");
+        setLoading(false);
+        return;
+      }
+
       const endpoint =
         mode === "create"
           ? "/api/admin/products"
@@ -111,6 +210,11 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
 
       const payload = {
         ...values,
+        price: Number(values.price),
+        stock: Number(values.stock),
+        readyStock: Number(values.readyStock),
+        pcsPerBal: Number(values.pcsPerBal),
+        shippingFee: Number(values.shippingFee),
         tierPrices: values.tierPrices.map((tier) => ({
           ...tier,
           minQty: Number(tier.minQty),
@@ -170,8 +274,9 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
             type="number"
             min={0}
             value={values.price}
-            onChange={(e) => updateField("price", Number(e.target.value || 0))}
+            onChange={(e) => updateField("price", onlyDigits(e.target.value))}
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            placeholder="Masukkan harga dasar"
           />
         </div>
       </div>
@@ -197,8 +302,9 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
             type="number"
             min={0}
             value={values.stock}
-            onChange={(e) => updateField("stock", Number(e.target.value || 0))}
+            onChange={(e) => updateField("stock", onlyDigits(e.target.value))}
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            placeholder="Masukkan total stock"
           />
         </div>
 
@@ -211,9 +317,10 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
             min={0}
             value={values.readyStock}
             onChange={(e) =>
-              updateField("readyStock", Number(e.target.value || 0))
+              updateField("readyStock", onlyDigits(e.target.value))
             }
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            placeholder="Masukkan ready stock"
           />
         </div>
 
@@ -244,9 +351,10 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
             min={1}
             value={values.pcsPerBal}
             onChange={(e) =>
-              updateField("pcsPerBal", Number(e.target.value || 1))
+              updateField("pcsPerBal", onlyDigits(e.target.value))
             }
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            placeholder="Masukkan pcs per bal"
           />
         </div>
 
@@ -259,9 +367,10 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
             min={0}
             value={values.shippingFee}
             onChange={(e) =>
-              updateField("shippingFee", Number(e.target.value || 0))
+              updateField("shippingFee", onlyDigits(e.target.value))
             }
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            placeholder="Masukkan ongkir"
           />
         </div>
 
@@ -404,7 +513,7 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
           {values.tierPrices.map((tier, index) => (
             <div
               key={index}
-              className="grid gap-4 rounded-2xl border border-slate-200/70 bg-slate-50 p-4 lg:grid-cols-[120px_1fr_140px_100px]"
+              className="grid gap-4 rounded-2xl border border-slate-200/70 bg-slate-50 p-4 lg:grid-cols-[120px_1fr_160px_100px]"
             >
               <div>
                 <label className="mb-2 block text-xs font-medium text-slate-500">
@@ -415,9 +524,10 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
                   min={1}
                   value={tier.minQty}
                   onChange={(e) =>
-                    updateTier(index, "minQty", Number(e.target.value || 1))
+                    updateTier(index, "minQty", onlyDigits(e.target.value))
                   }
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                  placeholder="Min qty"
                 />
               </div>
 
@@ -443,9 +553,10 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
                   min={0}
                   value={tier.price}
                   onChange={(e) =>
-                    updateTier(index, "price", Number(e.target.value || 0))
+                    updateTier(index, "price", onlyDigits(e.target.value))
                   }
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                  placeholder="Masukkan harga"
                 />
               </div>
 
