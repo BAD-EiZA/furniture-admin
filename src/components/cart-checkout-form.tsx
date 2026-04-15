@@ -124,7 +124,6 @@ export default function CartCheckoutForm({
       setCustomerCityDropdown(draft.customerCityDropdown || "");
       setCustomerCityText(draft.customerCityText || "");
       setDeliveryAreaType(draft.deliveryAreaType || "DALAM_KOTA");
-      setSalesId(draft.salesId || "");
       setPaymentMethod(draft.paymentMethod || "");
       setPaymentNote(draft.paymentNote || "");
     } catch (loadError) {
