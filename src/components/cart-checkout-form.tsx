@@ -30,6 +30,11 @@ type ProductSummary = {
     fileUrl: string;
     type: "IMAGE" | "VIDEO";
   }[];
+  tierPrices: {
+    minQty: number;
+    price: number;
+    label: string | null;
+  }[];
 };
 
 type PaymentProofState = {
@@ -59,16 +64,34 @@ const CITY_OPTIONS = [
 
 const CHECKOUT_DRAFT_KEY = "hirona_checkout_draft_v1";
 
-function getBulkDiscountPercent(quantity: number, pcsPerBal = 24) {
-  if (pcsPerBal > 0 && quantity >= pcsPerBal) return 0.2;
-  if (quantity >= 12) return 0.05;
-  return 0;
-}
+function getAppliedTier(product: ProductSummary | undefined, quantity: number) {
+  if (!product) {
+    return {
+      unitPrice: 0,
+      label: "Retail",
+      minQty: 1,
+    };
+  }
 
-function getDiscountLabel(quantity: number, pcsPerBal = 24) {
-  if (pcsPerBal > 0 && quantity >= pcsPerBal) return "Diskon 1 Bal 20%";
-  if (quantity >= 12) return "Diskon 12 pcs 5%";
-  return "Retail";
+  const sortedTiers = [...(product.tierPrices || [])].sort(
+    (a, b) => b.minQty - a.minQty,
+  );
+
+  const matchedTier = sortedTiers.find((tier) => quantity >= tier.minQty);
+
+  if (matchedTier) {
+    return {
+      unitPrice: Number(matchedTier.price),
+      label: matchedTier.label || `Min ${matchedTier.minQty} pcs`,
+      minQty: matchedTier.minQty,
+    };
+  }
+
+  return {
+    unitPrice: Number(product.price),
+    label: "Retail",
+    minQty: 1,
+  };
 }
 
 export default function CartCheckoutForm({
@@ -124,6 +147,7 @@ export default function CartCheckoutForm({
       setCustomerCityDropdown(draft.customerCityDropdown || "");
       setCustomerCityText(draft.customerCityText || "");
       setDeliveryAreaType(draft.deliveryAreaType || "DALAM_KOTA");
+      setSalesId(draft.salesId || "");
       setPaymentMethod(draft.paymentMethod || "");
       setPaymentNote(draft.paymentNote || "");
     } catch (loadError) {
@@ -166,14 +190,9 @@ export default function CartCheckoutForm({
     return items.map((cartItem) => {
       const product = products.find((p) => p.id === cartItem.productId);
 
-      const pcsPerBal = product?.pcsPerBal || 24;
-      const discountPercent = getBulkDiscountPercent(
-        cartItem.quantity,
-        pcsPerBal,
-      );
-      const discountLabel = getDiscountLabel(cartItem.quantity, pcsPerBal);
-      const discountedUnitPrice =
-        cartItem.price - cartItem.price * discountPercent;
+      const appliedTier = getAppliedTier(product, cartItem.quantity);
+      const normalUnitPrice = Number(product?.price || cartItem.price || 0);
+      const finalUnitPrice = Number(appliedTier.unitPrice || normalUnitPrice);
 
       const readyQty = Math.min(cartItem.quantity, product?.readyStock || 0);
       const poQty = Math.max(0, cartItem.quantity - readyQty);
@@ -183,16 +202,18 @@ export default function CartCheckoutForm({
           ? 0
           : Number(product?.shippingFee || 0);
 
-      const subtotal =
-        (discountedUnitPrice + shippingPerItem) * cartItem.quantity;
+      const subtotal = (finalUnitPrice + shippingPerItem) * cartItem.quantity;
+      const discountPerPcs = Math.max(0, normalUnitPrice - finalUnitPrice);
 
       return {
         ...cartItem,
         product,
-        discountedUnitPrice,
+        normalUnitPrice,
+        finalUnitPrice,
         shippingPerItem,
-        discountPercent,
-        discountLabel,
+        appliedTierLabel: appliedTier.label,
+        appliedTierMinQty: appliedTier.minQty,
+        discountPerPcs,
         readyQty,
         poQty,
         subtotal,
@@ -480,18 +501,27 @@ export default function CartCheckoutForm({
                         {item.name}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
-                        Harga awal: Rp {item.price.toLocaleString("id-ID")}
+                        Harga awal: Rp{" "}
+                        {Number(item.normalUnitPrice).toLocaleString("id-ID")}
                       </p>
                       <p className="text-sm text-slate-500">
                         Harga final: Rp{" "}
-                        {item.discountedUnitPrice.toLocaleString("id-ID")}
+                        {Number(item.finalUnitPrice).toLocaleString("id-ID")}
                       </p>
                       <p className="text-sm text-slate-500">
-                        Diskon: {item.discountLabel}
+                        Label harga: {item.appliedTierLabel}
                       </p>
+                      {item.discountPerPcs > 0 ? (
+                        <p className="text-sm text-slate-500">
+                          Potongan: Rp{" "}
+                          {Number(item.discountPerPcs).toLocaleString("id-ID")}
+                          /pcs
+                        </p>
+                      ) : null}
                       <p className="text-sm text-slate-500">
                         Ongkir: Rp{" "}
-                        {item.shippingPerItem.toLocaleString("id-ID")}/Pcs
+                        {Number(item.shippingPerItem).toLocaleString("id-ID")}
+                        /Pcs
                       </p>
                       <p className="text-sm text-slate-500">
                         Ready stock: {item.product?.readyStock ?? "-"}
@@ -541,7 +571,7 @@ export default function CartCheckoutForm({
                   <p className="text-sm text-slate-500">
                     Subtotal:{" "}
                     <span className="font-semibold text-slate-900">
-                      Rp {item.subtotal.toLocaleString("id-ID")}
+                      Rp {Number(item.subtotal).toLocaleString("id-ID")}
                     </span>
                   </p>
                 </div>
@@ -905,12 +935,12 @@ export default function CartCheckoutForm({
           <div className="space-y-2 text-sm text-slate-100">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>Rp {subtotal.toLocaleString("id-ID")}</span>
+              <span>Rp {Number(subtotal).toLocaleString("id-ID")}</span>
             </div>
 
             <div className="flex justify-between">
               <span>Ongkir</span>
-              <span>Rp {totalShipping.toLocaleString("id-ID")}</span>
+              <span>Rp {Number(totalShipping).toLocaleString("id-ID")}</span>
             </div>
 
             <div className="flex justify-between">
@@ -925,7 +955,7 @@ export default function CartCheckoutForm({
           <div className="mt-4 border-t border-white/10 pt-4">
             <p className="text-sm text-slate-100">Total Pembayaran</p>
             <p className="mt-2 text-3xl font-bold">
-              Rp {adjustment.total.toLocaleString("id-ID")}
+              Rp {Number(adjustment.total).toLocaleString("id-ID")}
             </p>
           </div>
         </div>

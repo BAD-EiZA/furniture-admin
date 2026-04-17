@@ -22,6 +22,10 @@ export async function GET(req: NextRequest) {
       include: {
         medias: {
           orderBy: { sortOrder: "asc" },
+          take: 1,
+        },
+        tierPrices: {
+          orderBy: { minQty: "asc" },
         },
       },
     });

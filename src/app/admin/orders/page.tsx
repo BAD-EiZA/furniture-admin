@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPageParams } from "@/lib/pagination";
+import OrderPreviewModal from "@/components/order-preview-modal";
 
 function formatPaymentMethod(method: string) {
   if (method === "TRANSFER") return "Transfer";
@@ -10,7 +11,33 @@ function formatPaymentMethod(method: string) {
 }
 
 function formatDate(value: Date) {
-  return value.toISOString();
+  return value.toLocaleString("id-ID");
+}
+
+function getStatusBadgeClass(status: string) {
+  if (status === "CONFIRMED" || status === "INVOICE_SENT") {
+    return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+  }
+
+  if (status === "WAITING_CONFIRMATION" || status === "PENDING_PAYMENT") {
+    return "bg-amber-50 text-amber-700 border border-amber-200";
+  }
+
+  if (status === "REJECTED" || status === "CANCELLED") {
+    return "bg-red-50 text-red-700 border border-red-200";
+  }
+
+  return "bg-slate-100 text-slate-700 border border-slate-200";
+}
+
+function formatStatus(status: string) {
+  if (status === "PENDING_PAYMENT") return "Menunggu Pembayaran";
+  if (status === "WAITING_CONFIRMATION") return "Menunggu Konfirmasi";
+  if (status === "CONFIRMED") return "Terkonfirmasi";
+  if (status === "REJECTED") return "Ditolak";
+  if (status === "CANCELLED") return "Dibatalkan";
+  if (status === "INVOICE_SENT") return "Invoice Terkirim";
+  return status;
 }
 
 export default async function OrdersPage({
@@ -46,10 +73,16 @@ export default async function OrdersPage({
           OR: [
             { orderCode: { contains: q, mode: "insensitive" as const } },
             {
-              customerNameDraft: { contains: q, mode: "insensitive" as const },
+              customerNameDraft: {
+                contains: q,
+                mode: "insensitive" as const,
+              },
             },
             {
-              customerPhoneDraft: { contains: q, mode: "insensitive" as const },
+              customerPhoneDraft: {
+                contains: q,
+                mode: "insensitive" as const,
+              },
             },
             {
               customerAddressDraft: {
@@ -91,10 +124,23 @@ export default async function OrdersPage({
       skip,
       take: limit,
       include: {
-        sales: true,
+        sales: {
+          select: {
+            name: true,
+            phone: true,
+            email: true,
+          },
+        },
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                medias: {
+                  orderBy: { sortOrder: "asc" },
+                  take: 1,
+                },
+              },
+            },
           },
         },
         invoice: true,
@@ -262,8 +308,12 @@ export default async function OrdersPage({
                           </p>
                         </div>
 
-                        <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700">
-                          {order.status}
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${getStatusBadgeClass(
+                            order.status,
+                          )}`}
+                        >
+                          {formatStatus(order.status)}
                         </span>
                       </div>
 
@@ -285,7 +335,7 @@ export default async function OrdersPage({
                           <span className="font-medium text-slate-900">
                             Sales:
                           </span>{" "}
-                          {order.sales.name}
+                          {order.sales?.name || "-"}
                         </div>
 
                         <div className="rounded-xl bg-white px-3 py-2">
@@ -324,19 +374,17 @@ export default async function OrdersPage({
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
-                        >
-                          Detail
-                        </Link>
+                        <OrderPreviewModal
+                          order={order as any}
+                          triggerLabel="Detail"
+                          defaultTab="detail"
+                        />
 
-                        <Link
-                          href={`/status/${order.orderCode}`}
-                          className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
-                        >
-                          Status
-                        </Link>
+                        <OrderPreviewModal
+                          order={order as any}
+                          triggerLabel="Status"
+                          defaultTab="status"
+                        />
 
                         {order.paymentProof ? (
                           <a
@@ -414,7 +462,9 @@ export default async function OrdersPage({
                           </div>
                         </td>
 
-                        <td className="px-4 py-3">{order.sales.name}</td>
+                        <td className="px-4 py-3">
+                          {order.sales?.name || "-"}
+                        </td>
 
                         <td className="px-4 py-3">
                           <div>
@@ -448,23 +498,29 @@ export default async function OrdersPage({
                           Rp {Number(order.total).toLocaleString("id-ID")}
                         </td>
 
-                        <td className="px-4 py-3">{order.status}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${getStatusBadgeClass(
+                              order.status,
+                            )}`}
+                          >
+                            {formatStatus(order.status)}
+                          </span>
+                        </td>
 
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-2">
-                            <Link
-                              href={`/admin/orders/${order.id}`}
-                              className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
-                            >
-                              Detail
-                            </Link>
+                            <OrderPreviewModal
+                              order={order as any}
+                              triggerLabel="Detail"
+                              defaultTab="detail"
+                            />
 
-                            <Link
-                              href={`/status/${order.orderCode}`}
-                              className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-200"
-                            >
-                              Status
-                            </Link>
+                            <OrderPreviewModal
+                              order={order as any}
+                              triggerLabel="Status"
+                              defaultTab="status"
+                            />
 
                             {order.paymentProof ? (
                               <a
@@ -490,7 +546,6 @@ export default async function OrdersPage({
                       </tr>
                     );
                   })}
-
 
                   {orders.length === 0 ? (
                     <tr>

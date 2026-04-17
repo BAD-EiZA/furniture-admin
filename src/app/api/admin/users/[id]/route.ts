@@ -172,7 +172,7 @@ export async function DELETE(
 
     if (session.userId === id) {
       return NextResponse.json(
-        { message: "Tidak bisa menghapus akun sendiri" },
+        { message: "Tidak bisa menonaktifkan akun sendiri" },
         { status: 400 },
       );
     }
@@ -195,31 +195,26 @@ export async function DELETE(
       );
     }
 
-    await prisma.user.delete({
-      where: { id },
-    });
+    if (!existing.isActive) {
+      return NextResponse.json({
+        message: "User sudah nonaktif",
+      });
+    }
 
-    await writeAuditLog({
-      action: "DELETE",
-      entityType: "USER",
-      entityId: existing.id,
-      description: `Menghapus user ${existing.email}`,
-      beforeData: {
-        id: existing.id,
-        name: existing.name,
-        email: existing.email,
-        phone: existing.phone,
-        role: existing.role,
-        isActive: existing.isActive,
+    await prisma.user.update({
+      where: { id },
+      data: {
+        isActive: false,
       },
     });
+
     return NextResponse.json({
-      message: "User berhasil dihapus",
+      message: "User berhasil dinonaktifkan",
     });
   } catch (error) {
     console.error("DELETE_USER_ERROR", error);
     return NextResponse.json(
-      { message: "Gagal menghapus user" },
+      { message: "Gagal menonaktifkan user" },
       { status: 500 },
     );
   }
