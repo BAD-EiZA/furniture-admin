@@ -131,6 +131,8 @@ export default function CartCheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -182,6 +184,18 @@ export default function CartCheckoutForm({
 
     loadProducts();
   }, [ready, items]);
+
+  useEffect(() => {
+    setQtyInputs((prev) => {
+      const next: Record<string, string> = {};
+
+      for (const item of items) {
+        next[item.productId] = prev[item.productId] ?? String(item.quantity);
+      }
+
+      return next;
+    });
+  }, [items]);
 
   const customerCity =
     deliveryAreaType === "DALAM_KOTA" ? customerCityDropdown : customerCityText;
@@ -300,6 +314,28 @@ export default function CartCheckoutForm({
     paymentNote,
   ]);
 
+  function handleQtyInputChange(productId: string, value: string) {
+    const digitsOnly = value.replace(/\D/g, "");
+    setQtyInputs((prev) => ({
+      ...prev,
+      [productId]: digitsOnly,
+    }));
+  }
+
+  function commitQty(productId: string) {
+    const rawValue = qtyInputs[productId] ?? "";
+    const parsed = Number(rawValue);
+    const finalQty =
+      !rawValue || Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
+
+    updateQty(productId, finalQty);
+
+    setQtyInputs((prev) => ({
+      ...prev,
+      [productId]: String(finalQty),
+    }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -412,6 +448,10 @@ export default function CartCheckoutForm({
     mergedItems.forEach((item) => {
       if (item.poQty > 0) {
         updateQty(item.productId, item.readyQty);
+        setQtyInputs((prev) => ({
+          ...prev,
+          [item.productId]: String(item.readyQty),
+        }));
       }
     });
     setAcceptPoItems(false);
@@ -531,13 +571,21 @@ export default function CartCheckoutForm({
 
                   <div className="flex flex-wrap items-center gap-3">
                     <input
-                      type="number"
-                      min={1}
-                      value={item.quantity}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={qtyInputs[item.productId] ?? String(item.quantity)}
                       onChange={(e) =>
-                        updateQty(item.productId, Number(e.target.value || 1))
+                        handleQtyInputChange(item.productId, e.target.value)
                       }
-                      className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                      onBlur={() => commitQty(item.productId)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commitQty(item.productId);
+                        }
+                      }}
+                      className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center outline-none focus:border-[#125EA9]"
                     />
 
                     <button
