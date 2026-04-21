@@ -20,23 +20,25 @@ export const createProductSchema = z.object({
     stock: z.coerce.number().int().min(0),
     readyStock: z.coerce.number().int().min(0),
     allowPreOrder: z.boolean(),
+    pcsPerBal: z.coerce.number().int().min(1, "Pcs per bal minimal 1"),
+    shippingFee: z.coerce.number().min(0, "Ongkir produk tidak valid"),
     medias: z.array(mediaSchema).min(1, "Minimal 1 media"),
     tierPrices: z.array(tierPriceSchema).min(1, "Minimal 1 tier harga"),
 });
 
 export const updateProductSchema = z.object({
-  name: z.string().min(2, "Nama produk wajib diisi"),
-  description: z.string().min(5, "Deskripsi produk wajib diisi"),
-  price: z.coerce.number().min(0, "Harga tidak valid"),
-  stock: z.coerce.number().int().min(0, "Stock tidak valid"),
-  readyStock: z.coerce.number().int().min(0, "Ready stock tidak valid"),
-  allowPreOrder: z.boolean(),
+    name: z.string().min(2, "Nama produk wajib diisi"),
+    description: z.string().min(5, "Deskripsi produk wajib diisi"),
+    price: z.coerce.number().min(0, "Harga tidak valid"),
+    stock: z.coerce.number().int().min(0, "Stock tidak valid"),
+    readyStock: z.coerce.number().int().min(0, "Ready stock tidak valid"),
+    allowPreOrder: z.boolean(),
 
-  pcsPerBal: z.coerce.number().int().min(1, "Pcs per bal minimal 1"),
-  shippingFee: z.coerce.number().min(0, "Ongkir produk tidak valid"),
-  isActive: z.boolean(),
-  isFeatured: z.boolean(),
+    pcsPerBal: z.coerce.number().int().min(1, "Pcs per bal minimal 1"),
+    shippingFee: z.coerce.number().min(0, "Ongkir produk tidak valid"),
+    isActive: z.boolean(),
+    isFeatured: z.boolean(),
 
-  medias: z.array(mediaSchema).min(1, "Minimal 1 media produk"),
-  tierPrices: z.array(tierPriceSchema).default([]),
+    medias: z.array(mediaSchema).min(1, "Minimal 1 media produk"),
+    tierPrices: z.array(tierPriceSchema).default([]),
 });

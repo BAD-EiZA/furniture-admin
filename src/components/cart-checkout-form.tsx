@@ -551,6 +551,12 @@ export default function CartCheckoutForm({
                       <p className="text-sm text-slate-500">
                         Label harga: {item.appliedTierLabel}
                       </p>
+
+                      {item.product?.pcsPerBal && item.quantity >= item.product.pcsPerBal ? (
+                        <p className="text-sm text-slate-500">
+                          Pcs per bal: {item.product.pcsPerBal} pcs
+                        </p>
+                      ) : null}
                       {item.discountPerPcs > 0 ? (
                         <p className="text-sm text-slate-500">
                           Potongan: Rp{" "}

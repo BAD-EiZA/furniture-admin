@@ -74,6 +74,8 @@ export async function POST(req: Request) {
       stock,
       readyStock,
       allowPreOrder,
+      shippingFee,
+      pcsPerBal,
       medias,
       tierPrices,
     } = parsed.data;
@@ -104,6 +106,8 @@ export async function POST(req: Request) {
         stock,
         readyStock,
         allowPreOrder,
+        shippingFee,
+        pcsPerBal,
         qrCodeValue: generateQrCodeValue(name),
         medias: {
           create: medias,
