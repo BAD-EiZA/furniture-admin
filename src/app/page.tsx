@@ -87,6 +87,7 @@ export default async function HomePage() {
   const featuredProducts =
     featuredProductsRaw.length > 0 ? featuredProductsRaw : fallbackProducts;
 
+    
   const heroSlides = [
     {
       id: "hero-default",
