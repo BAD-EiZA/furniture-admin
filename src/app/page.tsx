@@ -91,7 +91,7 @@ export default async function HomePage() {
     {
       id: "hero-default",
       image:
-        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809996/hero_z54weq.jpg",
+        "https://res.cloudinary.com/dvbkqu4lh/image/upload/v1776739788/quality_restoration_20260420172637199.jpg_wkqfre.jpg",
     },
     {
       id: "hero-2",
