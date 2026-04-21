@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +16,20 @@ export default function MiniCartPreview() {
     updateQty,
   } = useCart();
 
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setQtyInputs((prev) => {
+      const next: Record<string, string> = {};
+
+      for (const item of items) {
+        next[item.productId] = prev[item.productId] ?? String(item.quantity);
+      }
+
+      return next;
+    });
+  }, [items]);
+
   if (!ready) {
     return (
       <div className="p-4">
@@ -25,30 +40,78 @@ export default function MiniCartPreview() {
 
   const subtotal = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   function handleIncrease(productId: string, currentQty: number) {
-    updateQty(productId, currentQty + 1);
+    const nextQty = currentQty + 1;
+    updateQty(productId, nextQty);
+
+    setQtyInputs((prev) => ({
+      ...prev,
+      [productId]: String(nextQty),
+    }));
   }
 
   function handleDecrease(productId: string, currentQty: number, name: string) {
     if (currentQty <= 1) {
       removeItem(productId);
+      setQtyInputs((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+
       toast.success("Produk dihapus dari keranjang", {
         description: name,
       });
       return;
     }
 
-    updateQty(productId, currentQty - 1);
+    const nextQty = currentQty - 1;
+    updateQty(productId, nextQty);
+
+    setQtyInputs((prev) => ({
+      ...prev,
+      [productId]: String(nextQty),
+    }));
   }
 
   function handleRemove(productId: string, name: string) {
     removeItem(productId);
+
+    setQtyInputs((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+
     toast.success("Produk dihapus dari keranjang", {
       description: name,
     });
+  }
+
+  function handleQtyInputChange(productId: string, value: string) {
+    const digitsOnly = value.replace(/\D/g, "");
+
+    setQtyInputs((prev) => ({
+      ...prev,
+      [productId]: digitsOnly,
+    }));
+  }
+
+  function commitQty(productId: string, currentQty: number) {
+    const rawValue = qtyInputs[productId] ?? String(currentQty);
+    const parsed = Number(rawValue);
+    const finalQty =
+      !rawValue || Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
+
+    updateQty(productId, finalQty);
+
+    setQtyInputs((prev) => ({
+      ...prev,
+      [productId]: String(finalQty),
+    }));
   }
 
   return (
@@ -120,9 +183,24 @@ export default function MiniCartPreview() {
                         <Minus className="h-4 w-4" />
                       </button>
 
-                      <div className="inline-flex min-w-[36px] items-center justify-center rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 ring-1 ring-slate-200">
-                        {item.quantity}
-                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={qtyInputs[item.productId] ?? String(item.quantity)}
+                        onChange={(e) =>
+                          handleQtyInputChange(item.productId, e.target.value)
+                        }
+                        onBlur={() => commitQty(item.productId, item.quantity)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            commitQty(item.productId, item.quantity);
+                          }
+                        }}
+                        className="h-8 w-14 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm font-semibold text-slate-900 outline-none focus:border-[#125EA9]"
+                        aria-label={`Input quantity ${item.name}`}
+                      />
 
                       <button
                         type="button"

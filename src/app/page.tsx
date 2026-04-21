@@ -96,7 +96,7 @@ export default async function HomePage() {
     {
       id: "hero-2",
       image:
-        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1776220737/quality_restoration_20260415084944469.jpg_x91oem.jpg",
+        "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1776421143/Gemini_Generated_Image_woyv7xwoyv7xwoyv_z9cisa.png",
     },
   ];
 
