@@ -87,7 +87,6 @@ export default async function HomePage() {
   const featuredProducts =
     featuredProductsRaw.length > 0 ? featuredProductsRaw : fallbackProducts;
 
-    
   const heroSlides = [
     {
       id: "hero-default",
@@ -103,46 +102,45 @@ export default async function HomePage() {
 
   const lineupCards = [
     {
-      title: "Peralatan Dapur",
-      description: "Alat masak, wadah penyimpanan, dan aksesoris dapur.",
-      href: "/catalog?q=dapur",
+      title: featuredProducts[0]?.name,
+      description: featuredProducts[0]?.description,
+      href: `/catalog?q=${featuredProducts[0]?.name}`,
       image:
         featuredProducts[0]?.medias?.[0]?.type === "IMAGE"
           ? featuredProducts[0].medias[0].fileUrl
           : undefined,
     },
     {
-      title: "Perabot Plastik",
-      description: "Rak, ember, lemari, dan wadah rumah tangga serbaguna.",
-      href: "/catalog?q=plastik",
+      title: featuredProducts[1]?.name,
+      description: featuredProducts[1]?.description,
+      href: `/catalog?q=${featuredProducts[1]?.name}`,
       image:
         featuredProducts[1]?.medias?.[0]?.type === "IMAGE"
           ? featuredProducts[1].medias[0].fileUrl
           : undefined,
     },
     {
-      title: "Peralatan Kebersihan",
-      description: "Sapu, pel, tempat sampah, dan kebutuhan sanitasi.",
-      href: "/catalog?q=kebersihan",
+      title: featuredProducts[2]?.name,
+      description: featuredProducts[2]?.description,
+      href: `/catalog?q=${featuredProducts[2]?.name}`,
       image:
         featuredProducts[2]?.medias?.[0]?.type === "IMAGE"
           ? featuredProducts[2].medias[0].fileUrl
           : undefined,
     },
     {
-      title: "Home Decor & Furnitur",
-      description: "Meja, kursi, storage, dan perabot untuk berbagai ruang.",
-      href: "/catalog?q=furnitur",
+      title: featuredProducts[3]?.name,
+      description: featuredProducts[3]?.description,
+      href: `/catalog?q=${featuredProducts[3]?.name}`,
       image:
         featuredProducts[3]?.medias?.[0]?.type === "IMAGE"
           ? featuredProducts[3].medias[0].fileUrl
           : undefined,
     },
     {
-      title: "Produk Unggulan",
-      description:
-        "Pilihan produk populer untuk rumah, retailer, dan instansi.",
-      href: "/catalog",
+      title: featuredProducts[4]?.name,
+      description: featuredProducts[4]?.description,
+      href: `/catalog?q=${featuredProducts[4]?.name}`,
       image:
         featuredProducts[4]?.medias?.[0]?.type === "IMAGE"
           ? featuredProducts[4].medias[0].fileUrl
