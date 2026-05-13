@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import {
   CreditCard,
   ShieldCheck,
@@ -12,29 +15,57 @@ import { prisma } from "@/lib/prisma";
 import { getSiteSetting } from "@/lib/site-settings";
 import CartCheckoutForm from "@/components/cart-checkout-form";
 
-function groupBankAccountsByBankName(
-  bankAccounts: {
-    id: string;
-    bankName: string;
-    accountName: string;
-    accountNumber: string;
-    label: string | null;
-    isActive: boolean;
-    sortOrder: number;
-  }[],
-) {
-  const grouped = new Map<
-    string,
-    {
-      id: string;
-      bankName: string;
-      accountName: string;
-      accountNumber: string;
-      label: string | null;
-      isActive: boolean;
-      sortOrder: number;
-    }[]
-  >();
+type BankAccountLite = {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  label: string | null;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+const FALLBACK_BANK_ACCOUNTS: BankAccountLite[] = [
+  {
+    id: "cmosacurs000204jrymsz7w",
+    bankName: "BRI",
+    accountName: "HIRONA INSPIRASI NUSANTARA",
+    accountNumber: "044501001553307",
+    label: "BRI PT",
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    id: "cmosabpyw000004jkri2vz3",
+    bankName: "BCA",
+    accountName: "HIRONA INSPIRASI NUSANTARA",
+    accountNumber: "7133221176",
+    label: "BCA PT",
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    id: "cmosae1s5000004l88v5pk3",
+    bankName: "BCA",
+    accountName: "SUHENKY",
+    accountNumber: "4830467420",
+    label: "BCA PRIBADI",
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    id: "cmosaf7iq000104jdl3dx7",
+    bankName: "BRI",
+    accountName: "SUHENKY",
+    accountNumber: "204501008183503",
+    label: "BRI PRIBADI",
+    isActive: true,
+    sortOrder: 1,
+  },
+];
+
+function groupBankAccountsByBankName(bankAccounts: BankAccountLite[]) {
+  const grouped = new Map<string, BankAccountLite[]>();
 
   for (const account of bankAccounts) {
     const current = grouped.get(account.bankName) || [];
@@ -65,7 +96,9 @@ export default async function CheckoutPage() {
         phone: true,
       },
     }),
+
     getSiteSetting(),
+
     prisma.bankAccount.findMany({
       where: {
         isActive: true,
@@ -75,10 +108,26 @@ export default async function CheckoutPage() {
         { sortOrder: "asc" },
         { createdAt: "asc" },
       ],
+      select: {
+        id: true,
+        bankName: true,
+        accountName: true,
+        accountNumber: true,
+        label: true,
+        isActive: true,
+        sortOrder: true,
+      },
     }),
   ]);
 
-  const groupedBankAccounts = groupBankAccountsByBankName(bankAccounts);
+  const activeBankAccounts =
+    bankAccounts.length > 0 ? bankAccounts : FALLBACK_BANK_ACCOUNTS;
+
+  const groupedBankAccounts = groupBankAccountsByBankName(activeBankAccounts);
+
+  const qrisImageUrl =
+    setting?.qrisImageUrl ||
+    "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg";
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
@@ -92,6 +141,7 @@ export default async function CheckoutPage() {
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
             Checkout Pesanan
           </h1>
+
           <p className="mt-2 max-w-2xl text-slate-500">
             Tinjau produk dalam keranjang, isi data diri satu kali, lalu
             selesaikan pesanan Anda dengan nyaman.
@@ -108,9 +158,11 @@ export default async function CheckoutPage() {
                   <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef4ff] text-[#125EA9]">
                     <ShoppingCart className="h-5 w-5" />
                   </div>
+
                   <h2 className="text-2xl font-bold text-slate-950">
                     Ringkasan Checkout
                   </h2>
+
                   <p className="mt-3 text-sm leading-7 text-slate-600">
                     HIRONA HOMEWARE melayani pemesanan beberapa produk sekaligus
                     dalam satu checkout.
@@ -123,6 +175,7 @@ export default async function CheckoutPage() {
                       <div className="rounded-xl bg-[#fff7e8] p-2 text-[#C89B3C]">
                         <CreditCard className="h-4 w-4" />
                       </div>
+
                       <div>
                         <p className="font-medium text-slate-900">
                           Metode pembayaran fleksibel
@@ -140,6 +193,7 @@ export default async function CheckoutPage() {
                       <div className="rounded-xl bg-[#eef4ff] p-2 text-[#125EA9]">
                         <ShieldCheck className="h-4 w-4" />
                       </div>
+
                       <div>
                         <p className="font-medium text-slate-900">
                           Ready stock & PO otomatis
@@ -157,6 +211,7 @@ export default async function CheckoutPage() {
                       <div className="rounded-xl bg-[#eef2ff] p-2 text-[#2E4FAE]">
                         <MapPin className="h-4 w-4" />
                       </div>
+
                       <div>
                         <p className="font-medium text-slate-900">
                           Alamat Pengambilan / Pengiriman
@@ -175,6 +230,7 @@ export default async function CheckoutPage() {
                       <div className="rounded-xl bg-[#eef4ff] p-2 text-[#125EA9]">
                         <Phone className="h-4 w-4" />
                       </div>
+
                       <div>
                         <p className="font-medium text-slate-900">
                           Kontak HIRONA
@@ -196,65 +252,77 @@ export default async function CheckoutPage() {
               </h3>
 
               <div className="mt-4 space-y-3">
-                {groupedBankAccounts.map((group, index) => (
-                  <details
-                    key={group.bankName}
-                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
-                    open={index === 0}
-                  >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          {group.bankName}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {group.accounts.length} rekening tersedia
-                        </p>
-                      </div>
+                {groupedBankAccounts.length === 0 ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                    Belum ada rekening aktif yang tersedia.
+                  </div>
+                ) : (
+                  groupedBankAccounts.map((group, index) => (
+                    <details
+                      key={group.bankName}
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                      open={index === 0}
+                    >
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {group.bankName}
+                          </p>
 
-                      <ChevronDown className="h-4 w-4 text-slate-500 transition group-open:rotate-180" />
-                    </summary>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {group.accounts.length} rekening tersedia
+                          </p>
+                        </div>
 
-                    <div className="border-t border-slate-200 bg-white px-4 py-4">
-                      <div className="space-y-3">
-                        {group.accounts.map((account) => (
-                          <div
-                            key={account.id}
-                            className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                          >
-                            <p className="text-sm font-semibold text-slate-900">
-                              {account.label || account.bankName}
-                            </p>
+                        <ChevronDown className="h-4 w-4 text-slate-500 transition group-open:rotate-180" />
+                      </summary>
 
-                            <div className="mt-2 space-y-1 text-sm text-slate-600">
-                              <p>
-                                <span className="font-medium text-slate-900">
-                                  Atas Nama:
-                                </span>{" "}
-                                {account.accountName}
+                      <div className="border-t border-slate-200 bg-white px-4 py-4">
+                        <div className="space-y-3">
+                          {group.accounts.map((account) => (
+                            <div
+                              key={account.id}
+                              className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                            >
+                              <p className="text-sm font-semibold text-slate-900">
+                                {account.label || account.bankName}
                               </p>
-                              <p>
-                                <span className="font-medium text-slate-900">
-                                  No. Rekening:
-                                </span>{" "}
-                                {account.accountNumber}
-                              </p>
+
+                              <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                <p>
+                                  <span className="font-medium text-slate-900">
+                                    Atas Nama:
+                                  </span>{" "}
+                                  {account.accountName}
+                                </p>
+
+                                <p>
+                                  <span className="font-medium text-slate-900">
+                                    No. Rekening:
+                                  </span>{" "}
+                                  <span className="font-semibold tracking-wide text-slate-950">
+                                    {account.accountNumber}
+                                  </span>
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </details>
-                ))}
+                    </details>
+                  ))
+                )}
               </div>
 
-              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              {qrisImageUrl ? (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <img
-                    src={"https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg"}
+                    src={qrisImageUrl}
                     alt="QRIS Hirona"
                     className="mx-auto h-48 w-auto object-contain"
                   />
                 </div>
+              ) : null}
             </div>
           </div>
 
@@ -262,8 +330,8 @@ export default async function CheckoutPage() {
             <CartCheckoutForm
               salesOptions={sales}
               siteSetting={{
-                qrisImageUrl: "https://res.cloudinary.com/dvbkqu4lh/image/upload/q_auto/f_auto/v1775809994/qris_c2wkhf.jpg",
-                bankAccounts: bankAccounts.map((account) => ({
+                qrisImageUrl,
+                bankAccounts: activeBankAccounts.map((account) => ({
                   id: account.id,
                   bankName: account.bankName,
                   accountName: account.accountName,
