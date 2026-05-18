@@ -380,7 +380,14 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
           </label>
           <select
             value={values.isActive ? "true" : "false"}
-            onChange={(e) => updateField("isActive", e.target.value === "true")}
+            onChange={(e) => {
+              const active = e.target.value === "true";
+              setValues((prev) => ({
+                ...prev,
+                isActive: active,
+                isFeatured: active ? prev.isFeatured : false,
+              }));
+            }}
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
           >
             <option value="true">Aktif</option>
@@ -389,19 +396,38 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
+          <label
+            className={`mb-2 block text-sm font-medium ${
+              values.isActive ? "text-slate-700" : "text-slate-400"
+            }`}
+          >
             Produk Unggulan
+            {!values.isActive && (
+              <span className="ml-2 text-xs font-normal text-red-500">
+                (aktifkan produk terlebih dahulu)
+              </span>
+            )}
           </label>
           <select
             value={values.isFeatured ? "true" : "false"}
+            disabled={!values.isActive}
             onChange={(e) =>
               updateField("isFeatured", e.target.value === "true")
             }
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+            className={`w-full rounded-2xl border px-4 py-3.5 outline-none transition ${
+              values.isActive
+                ? "border-slate-200 bg-white focus:border-blue-500"
+                : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+            }`}
           >
             <option value="false">Tidak</option>
             <option value="true">Ya</option>
           </select>
+          {!values.isActive && (
+            <p className="mt-1.5 text-xs text-slate-400">
+              Produk unggulan hanya bisa diaktifkan jika status produk aktif.
+            </p>
+          )}
         </div>
       </div>
 
