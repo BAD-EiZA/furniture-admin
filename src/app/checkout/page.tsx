@@ -68,13 +68,16 @@ function groupBankAccountsByBankName(bankAccounts: BankAccountLite[]) {
   const grouped = new Map<string, BankAccountLite[]>();
 
   for (const account of bankAccounts) {
-    const current = grouped.get(account.bankName) || [];
+    // Normalisasi: Hapus spasi berlebih di awal/akhir dan jadikan huruf kapital semua
+    const normalizedBankName = account.bankName.trim().toUpperCase();
+
+    const current = grouped.get(normalizedBankName) || [];
     current.push(account);
-    grouped.set(account.bankName, current);
+    grouped.set(normalizedBankName, current);
   }
 
   return Array.from(grouped.entries()).map(([bankName, accounts]) => ({
-    bankName,
+    bankName, // Sekarang menggunakan nama bank yang sudah bersih
     accounts,
   }));
 }
@@ -181,8 +184,7 @@ export default async function CheckoutPage() {
                           Metode pembayaran fleksibel
                         </p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Transfer mendapat potongan 1%, COD normal, dan Tempo
-                          menambah 3%.
+                          Transfer mendapat potongan 2% dan COD mendapat harga normal.
                         </p>
                       </div>
                     </div>
