@@ -42,7 +42,7 @@ export function getPaymentAdjustment(
   paymentMethod: "TRANSFER" | "COD" | "TEMPO",
 ) {
   if (paymentMethod === "TRANSFER") {
-    const adjustmentValue = subtotal * 0.01;
+    const adjustmentValue = subtotal * 0.02;
 
     return {
       adjustmentType: "DISCOUNT" as const,
