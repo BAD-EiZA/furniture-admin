@@ -6,7 +6,6 @@ import { createOrderSchema } from "@/lib/checkout-schema";
 import {
   getPaymentAdjustment,
   getShippingCostPerItem,
-  getUnitPriceAfterBulkDiscount,
   splitReadyAndPO,
 } from "@/lib/checkout-pricing";
 
@@ -45,6 +44,11 @@ export async function POST(req: Request) {
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
+      },
+      include: {
+        tierPrices: {
+          orderBy: { minQty: "desc" },
+        },
       },
     });
 
@@ -99,18 +103,29 @@ export async function POST(req: Request) {
         productShippingFee: Number(product.shippingFee || 0),
       });
 
-      const { discountPercent, discountedUnitPrice, discountLabel } =
-        getUnitPriceAfterBulkDiscount(
-          Number(product.price),
-          inputItem.quantity,
-          product.pcsPerBal || 24,
-        );
+      // Gunakan tierPrices dari admin produk (sama dengan yang ditampilkan di frontend)
+      const matchedTier = product.tierPrices?.find(
+        (tier) => inputItem.quantity >= tier.minQty,
+      );
 
-      const itemSubtotal =
-        (discountedUnitPrice + shippingPerItem) * inputItem.quantity;
+      const discountedUnitPrice = matchedTier
+        ? Number(matchedTier.price)
+        : Number(product.price);
+
+      const discountPercent = matchedTier
+        ? Math.max(0, (Number(product.price) - Number(matchedTier.price)) / Number(product.price))
+        : 0;
+
+      const discountLabel = matchedTier
+        ? matchedTier.label || `Min ${matchedTier.minQty} pcs`
+        : "Retail";
+
+      // itemSubtotal = harga saja (tanpa ongkir) agar tidak double-count
+      const itemSubtotal = discountedUnitPrice * inputItem.quantity;
+      const itemShippingTotal = shippingPerItem * inputItem.quantity;
 
       subtotal += itemSubtotal;
-      shippingCostTotal += shippingPerItem * inputItem.quantity;
+      shippingCostTotal += itemShippingTotal;
 
       orderItemsData.push({
         productId: product.id,
@@ -136,8 +151,10 @@ export async function POST(req: Request) {
       );
     }
 
+    // Grand total: subtotal (harga saja) + ongkir, baru hitung diskon/surcharge metode bayar
+    const subtotalWithShipping = subtotal + shippingCostTotal;
     const adjustment = getPaymentAdjustment(
-      subtotal,
+      subtotalWithShipping,
       paymentMethod as "TRANSFER" | "COD" | "TEMPO",
     );
 
@@ -162,7 +179,7 @@ export async function POST(req: Request) {
         adjustmentValue: adjustment.adjustmentValue,
         shippingCost: shippingCostTotal,
         subtotal,
-        total: adjustment.total,
+        total: adjustment.total, // subtotal + ongkir + diskon/surcharge metode bayar
         paymentNote: paymentNote || null,
         items: {
           create: orderItemsData,

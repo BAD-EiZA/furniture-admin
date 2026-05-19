@@ -485,9 +485,8 @@ HIRONA HOMEWARE`
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p className="font-medium text-slate-900">Aturan Pembayaran</p>
               <ul className="mt-3 space-y-2">
-                <li>• Transfer / Bayar di Muka: Potongan 1%</li>
+                <li>• Transfer / Bayar di Muka: Potongan 2%</li>
                 <li>• COD: Harga Normal</li>
-                <li>• Tempo: Penambahan 3%</li>
               </ul>
             </div>
           </div>
