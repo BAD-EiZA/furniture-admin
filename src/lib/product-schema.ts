@@ -22,6 +22,7 @@ export const createProductSchema = z.object({
     allowPreOrder: z.boolean(),
     pcsPerBal: z.coerce.number().int().min(1, "Pcs per bal minimal 1"),
     shippingFee: z.coerce.number().min(0, "Ongkir produk tidak valid"),
+    brand: z.string().optional().default(""),
     medias: z.array(mediaSchema).min(1, "Minimal 1 media"),
     tierPrices: z.array(tierPriceSchema).min(1, "Minimal 1 tier harga"),
 });
@@ -38,6 +39,7 @@ export const updateProductSchema = z.object({
     shippingFee: z.coerce.number().min(0, "Ongkir produk tidak valid"),
     isActive: z.boolean(),
     isFeatured: z.boolean(),
+    brand: z.string().optional().default(""),
 
     medias: z.array(mediaSchema).min(1, "Minimal 1 media produk"),
     tierPrices: z.array(tierPriceSchema).default([]),

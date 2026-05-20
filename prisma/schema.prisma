@@ -208,6 +208,7 @@ model Product {
   shippingFee   Decimal @default(0) @db.Decimal(12, 2)
 
   qrCodeValue String   @unique
+  brand       String?  @default("")
   isActive    Boolean  @default(true)
   isFeatured  Boolean  @default(false)
   createdAt   DateTime @default(now())
