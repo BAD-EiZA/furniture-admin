@@ -392,9 +392,7 @@ HIRONA HOMEWARE`
                               item.shippingCostPerItem || 0,
                             ).toLocaleString("id-ID")}
                           </p>
-                          <p>
-                            Diskon: {Number(item.discountPercent || 0) * 100}%
-                          </p>
+                          
                           {item.priceTierLabel ? (
                             <p>Label harga: {item.priceTierLabel}</p>
                           ) : null}
