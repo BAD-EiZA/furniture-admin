@@ -109,6 +109,7 @@ export async function PUT(
       shippingFee,
       isActive,
       isFeatured,
+      brand,
       medias,
       tierPrices,
     } = parsed.data;
@@ -173,6 +174,7 @@ export async function PUT(
         shippingFee,
         isActive,
         isFeatured,
+        brand: brand || "",
         medias: {
           deleteMany: {},
           create: medias.map((item) => ({

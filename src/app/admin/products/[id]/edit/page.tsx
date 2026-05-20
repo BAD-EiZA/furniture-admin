@@ -47,6 +47,7 @@ export default async function EditProductPage({
           allowPreOrder: product.allowPreOrder,
           pcsPerBal: product.pcsPerBal,
           shippingFee: Number(product.shippingFee || 0),
+          brand: product.brand || "",
           isActive: product.isActive,
           isFeatured: product.isFeatured,
           medias: product.medias.map((media) => ({

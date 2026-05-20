@@ -28,6 +28,7 @@ type ProductFormValues = {
   allowPreOrder: boolean;
   pcsPerBal: string;
   shippingFee: string;
+  brand: string;
   isActive: boolean;
   isFeatured: boolean;
   medias: MediaItem[];
@@ -46,6 +47,7 @@ type Props = {
     allowPreOrder: boolean;
     pcsPerBal: number;
     shippingFee: number;
+    brand: string;
     isActive: boolean;
     isFeatured: boolean;
     medias: MediaItem[];
@@ -291,6 +293,22 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
           className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
           placeholder="Masukkan deskripsi produk"
         />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Merek
+        </label>
+        <input
+          type="text"
+          value={values.brand}
+          onChange={(e) => updateField("brand", e.target.value)}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 outline-none focus:border-blue-500"
+          placeholder="Masukkan nama merek, cth: IKEA, Olympic, Informa"
+        />
+        <p className="mt-1.5 text-xs text-slate-400">
+          Kosongkan jika tidak ada merek khusus
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

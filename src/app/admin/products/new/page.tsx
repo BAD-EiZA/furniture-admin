@@ -21,6 +21,7 @@ export default function NewProductPage() {
           allowPreOrder: true,
           pcsPerBal: 24,
           shippingFee: 0,
+          brand: "",
           isActive: true,
           isFeatured: false,
           medias: [],
