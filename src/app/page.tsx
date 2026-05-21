@@ -184,7 +184,7 @@ export default async function HomePage() {
         />
 
         <div className="relative z-20 mx-auto -mt-16 max-w-7xl px-4 pb-10 sm:-mt-20 sm:px-6 lg:px-8">
-          <HomeLineupCarousel items={lineupCards} />
+          <HomeLineupCarousel items={lineupCards} title={setting.lineupTitle || "Lineup Produk"} />
         </div>
       </section>
 

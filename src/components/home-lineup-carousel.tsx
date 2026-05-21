@@ -11,7 +11,7 @@ type LineupItem = {
   image?: string;
 };
 
-export default function HomeLineupCarousel({ items }: { items: LineupItem[] }) {
+export default function HomeLineupCarousel({ items, title }: { items: LineupItem[]; title?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   function scrollByAmount(direction: "left" | "right") {
@@ -30,7 +30,7 @@ export default function HomeLineupCarousel({ items }: { items: LineupItem[] }) {
     <div className="relative">
       <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-white sm:text-3xl">
-          Lineup Produk
+          {title || "Lineup Produk"}
         </h2>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -58,9 +58,9 @@ export default function HomeLineupCarousel({ items }: { items: LineupItem[] }) {
         ref={containerRef}
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-5"
       >
-        {items.map((item) => (
-          <Link
-            key={item.title}
+        {items.map((item, index) => (
+			<Link
+				key={`${item.title}-${index}`}
             href={item.href}
             className="group min-w-[220px] max-w-[220px] snap-start overflow-hidden rounded-[24px] border border-white/10 bg-white/95 p-3 shadow-xl transition hover:-translate-y-1 sm:min-w-[240px] sm:max-w-[240px]"
           >

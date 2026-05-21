@@ -115,6 +115,7 @@ model SiteSetting {
   facebookUrl       String?
   tiktokUrl         String?
 
+  lineupTitle         String? @default("Lineup Produk")
   homepageHeadline    String?
   homepageSubheadline String?
   featuredMode        String? @default("PRODUCT")

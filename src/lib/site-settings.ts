@@ -25,6 +25,7 @@ export async function getSiteSetting() {
         instagramUrl: "https://instagram.com/hirona.homeware",
         facebookUrl: "https://facebook.com/hirona homeware",
         tiktokUrl: "https://tiktok.com/@hirona.Homeware",
+        lineupTitle: "Lineup Produk",
         homepageHeadline:
           "Distributor alat rumah tangga dan perabot berkualitas untuk kebutuhan rumah, retailer, dan instansi di Kalimantan Timur.",
         homepageSubheadline:

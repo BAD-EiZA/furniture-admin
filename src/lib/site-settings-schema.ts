@@ -16,6 +16,7 @@ export const updateSiteSettingSchema = z.object({
   instagramUrl: z.string().optional().nullable(),
   facebookUrl: z.string().optional().nullable(),
   tiktokUrl: z.string().optional().nullable(),
+  lineupTitle: z.string().optional().nullable(),
   homepageHeadline: z.string().optional().nullable(),
   homepageSubheadline: z.string().optional().nullable(),
   featuredMode: z.enum(["PRODUCT", "PROMO"]).optional().nullable(),
