@@ -19,6 +19,7 @@ type SiteSettingsFormValues = {
     facebookUrl: string;
     tiktokUrl: string;
 
+    lineupTitle: string;
     homepageHeadline: string;
     homepageSubheadline: string;
     featuredMode: string;
@@ -248,6 +249,22 @@ export default function SiteSettingsForm({
                 </h2>
 
                 <div className="mt-5 grid gap-6">
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                            Judul Section Lineup Produk
+                        </label>
+                        <input
+                            type="text"
+                            value={values.lineupTitle}
+                            onChange={(e) => updateField("lineupTitle", e.target.value)}
+                            placeholder="cth: Lineup Produk, Koleksi Terbaru, Produk Pilihan"
+                            className="w-full rounded-2xl border border-slate-200 px-4 py-3.5 outline-none focus:border-[#125EA9]"
+                        />
+                        <p className="mt-1.5 text-xs text-slate-400">
+                            Nama ini tampil sebagai judul di bagian carousel produk unggulan halaman beranda.
+                        </p>
+                    </div>
+
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">
                             Judul Utama (Headline)

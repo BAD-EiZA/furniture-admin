@@ -89,7 +89,7 @@ export default async function CatalogPage({
                 <div className="flex items-center gap-2 mb-4">
                   <Tag className="h-4 w-4 text-[#125EA9]" />
                   <h3 className="text-sm font-semibold text-slate-900">
-                    Filter Merek
+                    Filter Produk
                   </h3>
                 </div>
 

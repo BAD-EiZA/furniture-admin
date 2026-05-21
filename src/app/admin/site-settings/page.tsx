@@ -31,6 +31,7 @@ export default async function AdminSiteSettingsPage() {
           instagramUrl: setting.instagramUrl || "",
           facebookUrl: setting.facebookUrl || "",
           tiktokUrl: setting.tiktokUrl || "",
+          lineupTitle: setting.lineupTitle || "Lineup Produk",
           homepageHeadline: setting.homepageHeadline || "",
           homepageSubheadline: setting.homepageSubheadline || "",
           featuredMode: setting.featuredMode || "PRODUCT",
