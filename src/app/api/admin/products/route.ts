@@ -78,6 +78,7 @@ export async function POST(req: Request) {
       pcsPerBal,
       medias,
       tierPrices,
+      bonusRules,
     } = parsed.data;
 
     if (readyStock > stock) {
@@ -85,6 +86,23 @@ export async function POST(req: Request) {
         { message: "Ready stock tidak boleh lebih besar dari total stock" },
         { status: 400 },
       );
+    }
+
+    if (bonusRules.length > 0) {
+      const bonusProductIds = [
+        ...new Set(bonusRules.map((rule) => rule.bonusProductId)),
+      ];
+
+      const bonusProductsFound = await prisma.product.count({
+        where: { id: { in: bonusProductIds } },
+      });
+
+      if (bonusProductsFound !== bonusProductIds.length) {
+        return NextResponse.json(
+          { message: "Ada produk bonus yang tidak ditemukan" },
+          { status: 400 },
+        );
+      }
     }
 
     let slug = slugify(name);
@@ -121,6 +139,15 @@ export async function POST(req: Request) {
               label: tier.label || null,
             })),
         },
+        bonusRules: {
+          create: bonusRules
+            .sort((a, b) => a.minQty - b.minQty)
+            .map((rule) => ({
+              minQty: rule.minQty,
+              bonusProductId: rule.bonusProductId,
+              bonusQty: rule.bonusQty,
+            })),
+        },
       },
       include: {
         medias: {
@@ -128,6 +155,14 @@ export async function POST(req: Request) {
         },
         tierPrices: {
           orderBy: { minQty: "asc" },
+        },
+        bonusRules: {
+          orderBy: { minQty: "asc" },
+          include: {
+            bonusProduct: {
+              select: { id: true, name: true },
+            },
+          },
         },
       },
     });

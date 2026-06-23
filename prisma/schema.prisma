@@ -46,6 +46,7 @@ enum OrderStatus {
   REJECTED
   CANCELLED
   INVOICE_SENT
+  SHIPPED
 }
 
 enum PaymentMethod {
@@ -87,6 +88,7 @@ model Order {
   confirmedAt   DateTime?
   rejectedAt    DateTime?
   invoiceSentAt DateTime?
+  shippedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -219,6 +221,25 @@ model Product {
   orderItems     OrderItem[]
   tierPrices     ProductTierPrice[]
   stockHistories StockHistory[]
+
+  // Rule bonus milik produk ini (mis. beli produk ini >=50pcs, bonus produk lain)
+  bonusRules ProductBonusRule[] @relation("BonusRuleOwner")
+  // Rule bonus di produk lain yang menjadikan produk ini sebagai hadiah bonus
+  bonusRuleRefs ProductBonusRule[] @relation("BonusRuleProduct")
+}
+
+model ProductBonusRule {
+  id              String @id @default(cuid())
+  productId       String
+  minQty          Int
+  bonusProductId  String
+  bonusQty        Int    @default(1)
+  createdAt       DateTime @default(now())
+
+  product       Product @relation("BonusRuleOwner", fields: [productId], references: [id], onDelete: Cascade)
+  bonusProduct  Product @relation("BonusRuleProduct", fields: [bonusProductId], references: [id], onDelete: Cascade)
+
+  @@index([productId, minQty])
 }
 
 model ProductTierPrice {
@@ -280,6 +301,10 @@ model OrderItem {
   readyQty       Int     @default(0)
   poQty          Int     @default(0)
   priceTierLabel String?
+
+  // Item ini adalah hadiah bonus (diskon 100%, tidak dihitung ke total, tidak potong stok)
+  isBonus              Boolean @default(false)
+  bonusSourceProductId String?
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])

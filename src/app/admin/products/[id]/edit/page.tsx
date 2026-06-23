@@ -18,6 +18,9 @@ export default async function EditProductPage({
       tierPrices: {
         orderBy: { minQty: "asc" },
       },
+      bonusRules: {
+        orderBy: { minQty: "asc" },
+      },
     },
   });
 
@@ -60,6 +63,11 @@ export default async function EditProductPage({
             minQty: tier.minQty,
             price: Number(tier.price),
             label: tier.label || "",
+          })),
+          bonusRules: product.bonusRules.map((rule) => ({
+            minQty: rule.minQty,
+            bonusProductId: rule.bonusProductId,
+            bonusQty: rule.bonusQty,
           })),
         }}
       />

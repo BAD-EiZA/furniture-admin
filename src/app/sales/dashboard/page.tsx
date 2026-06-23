@@ -30,6 +30,29 @@ function formatStatus(status: string) {
   return status;
 }
 
+function serializeOrder(order: any) {
+  return {
+    ...order,
+    adjustmentValue: order.adjustmentValue?.toString() ?? "0",
+    shippingCost: order.shippingCost?.toString() ?? "0",
+    subtotal: order.subtotal?.toString() ?? "0",
+    total: order.total?.toString() ?? "0",
+    // Tambahkan konversi item jika halaman ini juga me-render detail item
+    items: order.items?.map((item: any) => ({
+      ...item,
+      unitPrice: item.unitPrice?.toString() ?? "0",
+      subtotal: item.subtotal?.toString() ?? "0",
+      discountPercent: item.discountPercent?.toString() ?? "0",
+      shippingCostPerItem: item.shippingCostPerItem?.toString() ?? "0",
+      product: item.product ? {
+        ...item.product,
+        price: Number(item.product.price),
+        shippingFee: Number(item.product.shippingFee ?? 0),
+      } : null,
+    })) || []
+  };
+}
+
 export default async function SalesDashboardPage() {
   const session = await getSession();
 
@@ -173,7 +196,7 @@ Terima kasih.`;
 
                       <div className="mt-4 flex flex-wrap gap-2">
                         <OrderPreviewModal
-                          order={order as any}
+                          order={serializeOrder(order) as any}
                           triggerLabel="Lihat"
                           defaultTab="detail"
                           salesActions={{
@@ -281,7 +304,7 @@ Terima kasih.`;
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-2">
                             <OrderPreviewModal
-                              order={order as any}
+                              order={serializeOrder(order) as any}
                               triggerLabel="Lihat"
                               defaultTab="detail"
                               salesActions={{

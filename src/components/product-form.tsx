@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadButton } from "@uploadthing/react";
 
@@ -19,6 +19,12 @@ type TierPriceItem = {
   label: string;
 };
 
+type BonusRuleItem = {
+  minQty: string;
+  bonusProductId: string;
+  bonusQty: string;
+};
+
 type ProductFormValues = {
   name: string;
   description: string;
@@ -33,6 +39,7 @@ type ProductFormValues = {
   isFeatured: boolean;
   medias: MediaItem[];
   tierPrices: TierPriceItem[];
+  bonusRules: BonusRuleItem[];
 };
 
 type Props = {
@@ -55,6 +62,11 @@ type Props = {
       minQty: number;
       price: number;
       label: string;
+    }[];
+    bonusRules: {
+      minQty: number;
+      bonusProductId: string;
+      bonusQty: number;
     }[];
   };
 };
@@ -88,6 +100,11 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
                 label: "",
               },
             ],
+      bonusRules: initialValues.bonusRules.map((rule) => ({
+        minQty: String(rule.minQty ?? ""),
+        bonusProductId: rule.bonusProductId,
+        bonusQty: String(rule.bonusQty ?? "1"),
+      })),
     }),
     [initialValues],
   );
@@ -98,6 +115,37 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [availableProducts, setAvailableProducts] = useState<
+    { id: string; name: string }[]
+  >([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProducts() {
+      try {
+        const res = await fetch("/api/admin/products");
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!active) return;
+
+        setAvailableProducts(
+          (data as { id: string; name: string }[])
+            .filter((product) => product.id !== productId)
+            .map((product) => ({ id: product.id, name: product.name })),
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      active = false;
+    };
+  }, [productId]);
 
   function updateField<K extends keyof ProductFormValues>(
     key: K,
@@ -137,6 +185,40 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
     setValues((prev) => ({
       ...prev,
       tierPrices: prev.tierPrices.filter((_, i) => i !== index),
+    }));
+  }
+
+  function addBonusRule() {
+    setValues((prev) => ({
+      ...prev,
+      bonusRules: [
+        ...prev.bonusRules,
+        {
+          minQty: "",
+          bonusProductId: "",
+          bonusQty: "1",
+        },
+      ],
+    }));
+  }
+
+  function updateBonusRule<K extends keyof BonusRuleItem>(
+    index: number,
+    key: K,
+    value: BonusRuleItem[K],
+  ) {
+    setValues((prev) => ({
+      ...prev,
+      bonusRules: prev.bonusRules.map((rule, i) =>
+        i === index ? { ...rule, [key]: value } : rule,
+      ),
+    }));
+  }
+
+  function removeBonusRule(index: number) {
+    setValues((prev) => ({
+      ...prev,
+      bonusRules: prev.bonusRules.filter((_, i) => i !== index),
     }));
   }
 
@@ -203,6 +285,21 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
         return;
       }
 
+      const invalidBonusRule = values.bonusRules.find(
+        (rule) =>
+          rule.minQty.trim() === "" ||
+          rule.bonusProductId.trim() === "" ||
+          rule.bonusQty.trim() === "" ||
+          Number(rule.minQty) < 1 ||
+          Number(rule.bonusQty) < 1,
+      );
+
+      if (invalidBonusRule) {
+        setError("Semua aturan bonus wajib diisi dengan benar (min qty, produk bonus, dan jumlah bonus)");
+        setLoading(false);
+        return;
+      }
+
       const endpoint =
         mode === "create"
           ? "/api/admin/products"
@@ -221,6 +318,11 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
           ...tier,
           minQty: Number(tier.minQty),
           price: Number(tier.price),
+        })),
+        bonusRules: values.bonusRules.map((rule) => ({
+          minQty: Number(rule.minQty),
+          bonusProductId: rule.bonusProductId,
+          bonusQty: Number(rule.bonusQty),
         })),
       };
 
@@ -617,6 +719,114 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Bonus Pembelian
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Contoh: pesan {">"}= 50 pcs produk ini, bonus 1 pcs sapu. Bonus
+              tidak dihitung ke total order (diskon 100%) dan tidak memotong
+              stok produk bonus.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={addBonusRule}
+            className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Tambah Bonus
+          </button>
+        </div>
+
+        {values.bonusRules.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            Belum ada aturan bonus untuk produk ini.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {values.bonusRules.map((rule, index) => (
+              <div
+                key={index}
+                className="grid gap-4 rounded-2xl border border-slate-200/70 bg-slate-50 p-4 lg:grid-cols-[140px_1fr_140px_100px]"
+              >
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-slate-500">
+                    Min Qty Pesan
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={rule.minQty}
+                    onChange={(e) =>
+                      updateBonusRule(
+                        index,
+                        "minQty",
+                        onlyDigits(e.target.value),
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                    placeholder="cth: 50"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-slate-500">
+                    Produk Bonus
+                  </label>
+                  <select
+                    value={rule.bonusProductId}
+                    onChange={(e) =>
+                      updateBonusRule(index, "bonusProductId", e.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                  >
+                    <option value="">Pilih produk bonus</option>
+                    {availableProducts.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-slate-500">
+                    Jumlah Bonus
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={rule.bonusQty}
+                    onChange={(e) =>
+                      updateBonusRule(
+                        index,
+                        "bonusQty",
+                        onlyDigits(e.target.value),
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
+                    placeholder="cth: 1"
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => removeBonusRule(index)}
+                    className="w-full rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {error ? (
