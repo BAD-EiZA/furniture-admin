@@ -9,4 +9,3 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
-  

@@ -13,6 +13,12 @@ const tierPriceSchema = z.object({
     label: z.string().optional().nullable(),
 });
 
+const bonusRuleSchema = z.object({
+    minQty: z.coerce.number().int().min(1, "Min qty bonus minimal 1"),
+    bonusProductId: z.string().min(1, "Produk bonus wajib dipilih"),
+    bonusQty: z.coerce.number().int().min(1, "Jumlah bonus minimal 1"),
+});
+
 export const createProductSchema = z.object({
     name: z.string().min(2, "Nama produk minimal 2 karakter"),
     description: z.string().min(5, "Deskripsi minimal 5 karakter"),
@@ -25,6 +31,7 @@ export const createProductSchema = z.object({
     brand: z.string().optional().default(""),
     medias: z.array(mediaSchema).min(1, "Minimal 1 media"),
     tierPrices: z.array(tierPriceSchema).min(1, "Minimal 1 tier harga"),
+    bonusRules: z.array(bonusRuleSchema).default([]),
 });
 
 export const updateProductSchema = z.object({
@@ -43,4 +50,5 @@ export const updateProductSchema = z.object({
 
     medias: z.array(mediaSchema).min(1, "Minimal 1 media produk"),
     tierPrices: z.array(tierPriceSchema).default([]),
+    bonusRules: z.array(bonusRuleSchema).default([]),
 });

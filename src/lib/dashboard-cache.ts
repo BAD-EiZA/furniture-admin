@@ -12,6 +12,7 @@ export async function getAdminDashboardSummary() {
     confirmedRevenue: number;
     confirmedOrders: number;
     rejectedOrders: number;
+    shippedOrders: number;
     waitingOrders: number;
     pendingOrders: number;
     paymentMethodRaw: {
@@ -31,6 +32,7 @@ export async function getAdminDashboardSummary() {
     confirmedRevenue,
     confirmedOrders,
     rejectedOrders,
+    shippedOrders,
     waitingOrders,
     pendingOrders,
     paymentMethodRaw,
@@ -62,6 +64,9 @@ export async function getAdminDashboardSummary() {
       where: { status: "REJECTED" },
     }),
     prisma.order.count({
+      where: { status: "SHIPPED" },
+    }),
+    prisma.order.count({
       where: { status: "WAITING_CONFIRMATION" },
     }),
     prisma.order.count({
@@ -86,6 +91,7 @@ export async function getAdminDashboardSummary() {
     confirmedRevenue: Number(confirmedRevenue._sum.total || 0),
     confirmedOrders,
     rejectedOrders,
+    shippedOrders,
     waitingOrders,
     pendingOrders,
     paymentMethodRaw: paymentMethodRaw.map((item) => ({

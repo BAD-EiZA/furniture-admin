@@ -19,6 +19,7 @@ type OrderPreviewItem = {
   discountPercent?: number | string | null;
   shippingCostPerItem?: number | string | null;
   priceTierLabel?: string | null;
+  isBonus?: boolean;
   product: {
     name: string;
     medias?: {
@@ -375,8 +376,13 @@ export default function OrderPreviewModal({
                               </div>
 
                               <div>
-                                <p className="font-semibold text-slate-900">
+                                <p className="flex items-center gap-2 font-semibold text-slate-900">
                                   {item.product.name}
+                                  {item.isBonus ? (
+                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                      Bonus
+                                    </span>
+                                  ) : null}
                                 </p>
                                 <p className="mt-2 text-sm text-slate-500">
                                   Harga satuan: {formatCurrency(item.unitPrice)}

@@ -49,6 +49,12 @@ export async function POST(req: Request) {
         tierPrices: {
           orderBy: { minQty: "desc" },
         },
+        bonusRules: {
+          orderBy: { minQty: "desc" },
+          include: {
+            bonusProduct: true,
+          },
+        },
       },
     });
 
@@ -69,6 +75,8 @@ export async function POST(req: Request) {
       readyQty: number;
       poQty: number;
       priceTierLabel: string;
+      isBonus: boolean;
+      bonusSourceProductId: string | null;
     }[] = [];
 
     let subtotal = 0;
@@ -137,6 +145,44 @@ export async function POST(req: Request) {
         readyQty: split.readyQty,
         poQty: split.poQty,
         priceTierLabel: discountLabel,
+        isBonus: false,
+        bonusSourceProductId: null,
+      });
+    }
+
+    // Tambahkan item bonus (gratis, diskon 100%) berdasarkan aturan bonus produk.
+    // Bonus tidak menambah subtotal/total dan tidak memotong stok produk bonus
+    // (readyQty & poQty diset 0 sehingga tidak ada pengurangan stok saat konfirmasi).
+    for (const inputItem of items) {
+      const product = products.find((p) => p.id === inputItem.productId);
+
+      if (!product || !product.bonusRules || product.bonusRules.length === 0) {
+        continue;
+      }
+
+      // Ambil rule dengan minQty tertinggi yang terpenuhi oleh quantity pesanan
+      const matchedBonusRule = product.bonusRules.find(
+        (rule) => inputItem.quantity >= rule.minQty,
+      );
+
+      if (!matchedBonusRule) {
+        continue;
+      }
+
+      const bonusUnitPrice = Number(matchedBonusRule.bonusProduct.price);
+
+      orderItemsData.push({
+        productId: matchedBonusRule.bonusProductId,
+        quantity: matchedBonusRule.bonusQty,
+        unitPrice: bonusUnitPrice,
+        subtotal: 0,
+        shippingCostPerItem: 0,
+        discountPercent: 1,
+        readyQty: 0,
+        poQty: 0,
+        priceTierLabel: `Bonus beli ${matchedBonusRule.minQty}+ pcs ${product.name}`,
+        isBonus: true,
+        bonusSourceProductId: product.id,
       });
     }
 

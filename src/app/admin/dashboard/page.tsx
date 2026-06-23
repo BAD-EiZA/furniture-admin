@@ -38,6 +38,10 @@ export default async function AdminDashboardPage() {
       icon: ShoppingCart,
       hint: "Semua transaksi masuk",
       iconClass: "bg-[#eef2ff] text-[#2E4FAE]",
+      breakdown: [
+        { label: "Ditolak", value: dashboardSummary.rejectedOrders },
+        { label: "Dikirim", value: dashboardSummary.shippedOrders },
+      ],
     },
     {
       title: "Admin",
@@ -170,6 +174,22 @@ export default async function AdminDashboardPage() {
 
               <CardContent>
                 <p className="text-sm text-slate-500">{card.hint}</p>
+
+                {card.breakdown ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {card.breakdown.map((entry) => (
+                      <span
+                        key={entry.label}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ebf5] bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600"
+                      >
+                        {entry.label}
+                        <span className="font-semibold text-slate-900">
+                          {entry.value}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           );

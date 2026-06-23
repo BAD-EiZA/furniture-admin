@@ -38,6 +38,14 @@ export async function GET(
         tierPrices: {
           orderBy: { minQty: "asc" },
         },
+        bonusRules: {
+          orderBy: { minQty: "asc" },
+          include: {
+            bonusProduct: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
 
@@ -88,6 +96,7 @@ export async function PUT(
       include: {
         medias: true,
         tierPrices: true,
+        bonusRules: true,
       },
     });
 
@@ -112,6 +121,7 @@ export async function PUT(
       brand,
       medias,
       tierPrices,
+      bonusRules,
     } = parsed.data;
 
     if (readyStock > stock) {
@@ -133,6 +143,34 @@ export async function PUT(
         { message: "Ongkir produk tidak boleh negatif" },
         { status: 400 },
       );
+    }
+
+    const selfReferencingBonus = bonusRules.find(
+      (rule) => rule.bonusProductId === id,
+    );
+
+    if (selfReferencingBonus) {
+      return NextResponse.json(
+        { message: "Produk bonus tidak boleh produk yang sama dengan produk ini" },
+        { status: 400 },
+      );
+    }
+
+    if (bonusRules.length > 0) {
+      const bonusProductIds = [
+        ...new Set(bonusRules.map((rule) => rule.bonusProductId)),
+      ];
+
+      const bonusProductsFound = await prisma.product.count({
+        where: { id: { in: bonusProductIds } },
+      });
+
+      if (bonusProductsFound !== bonusProductIds.length) {
+        return NextResponse.json(
+          { message: "Ada produk bonus yang tidak ditemukan" },
+          { status: 400 },
+        );
+      }
     }
 
     let slug = slugify(name);
@@ -194,6 +232,16 @@ export async function PUT(
               label: tier.label || null,
             })),
         },
+        bonusRules: {
+          deleteMany: {},
+          create: bonusRules
+            .sort((a, b) => a.minQty - b.minQty)
+            .map((rule) => ({
+              minQty: rule.minQty,
+              bonusProductId: rule.bonusProductId,
+              bonusQty: rule.bonusQty,
+            })),
+        },
       },
       include: {
         medias: {
@@ -201,6 +249,14 @@ export async function PUT(
         },
         tierPrices: {
           orderBy: { minQty: "asc" },
+        },
+        bonusRules: {
+          orderBy: { minQty: "asc" },
+          include: {
+            bonusProduct: {
+              select: { id: true, name: true },
+            },
+          },
         },
       },
     });

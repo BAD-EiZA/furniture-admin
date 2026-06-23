@@ -1,0 +1,776 @@
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 1dd1342..38eee05 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -221,6 +221,25 @@ model Product {
+   orderItems     OrderItem[]
+   tierPrices     ProductTierPrice[]
+   stockHistories StockHistory[]
++
++  // Rule bonus milik produk ini (mis. beli produk ini >=50pcs, bonus produk lain)
++  bonusRules ProductBonusRule[] @relation("BonusRuleOwner")
++  // Rule bonus di produk lain yang menjadikan produk ini sebagai hadiah bonus
++  bonusRuleRefs ProductBonusRule[] @relation("BonusRuleProduct")
++}
++
++model ProductBonusRule {
++  id              String @id @default(cuid())
++  productId       String
++  minQty          Int
++  bonusProductId  String
++  bonusQty        Int    @default(1)
++  createdAt       DateTime @default(now())
++
++  product       Product @relation("BonusRuleOwner", fields: [productId], references: [id], onDelete: Cascade)
++  bonusProduct  Product @relation("BonusRuleProduct", fields: [bonusProductId], references: [id], onDelete: Cascade)
++
++  @@index([productId, minQty])
+ }
+ 
+ model ProductTierPrice {
+@@ -283,6 +302,10 @@ model OrderItem {
+   poQty          Int     @default(0)
+   priceTierLabel String?
+ 
++  // Item ini adalah hadiah bonus (diskon 100%, tidak dihitung ke total, tidak potong stok)
++  isBonus              Boolean @default(false)
++  bonusSourceProductId String?
++
+   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+   product Product @relation(fields: [productId], references: [id])
+ }
+diff --git a/src/app/admin/dashboard/page.tsx b/src/app/admin/dashboard/page.tsx
+index 2d9a913..c432736 100644
+--- a/src/app/admin/dashboard/page.tsx
++++ b/src/app/admin/dashboard/page.tsx
+@@ -38,6 +38,10 @@ export default async function AdminDashboardPage() {
+       icon: ShoppingCart,
+       hint: "Semua transaksi masuk",
+       iconClass: "bg-[#eef2ff] text-[#2E4FAE]",
++      breakdown: [
++        { label: "Ditolak", value: dashboardSummary.rejectedOrders },
++        { label: "Dikirim", value: dashboardSummary.shippedOrders },
++      ],
+     },
+     {
+       title: "Admin",
+@@ -170,6 +174,22 @@ export default async function AdminDashboardPage() {
+ 
+               <CardContent>
+                 <p className="text-sm text-slate-500">{card.hint}</p>
++
++                {card.breakdown ? (
++                  <div className="mt-3 flex flex-wrap gap-2">
++                    {card.breakdown.map((entry) => (
++                      <span
++                        key={entry.label}
++                        className="inline-flex items-center gap-1.5 rounded-full border border-[#e3ebf5] bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600"
++                      >
++                        {entry.label}
++                        <span className="font-semibold text-slate-900">
++                          {entry.value}
++                        </span>
++                      </span>
++                    ))}
++                  </div>
++                ) : null}
+               </CardContent>
+             </Card>
+           );
+diff --git a/src/app/admin/orders/[id]/page.tsx b/src/app/admin/orders/[id]/page.tsx
+index aa1aa14..3c6de6f 100644
+--- a/src/app/admin/orders/[id]/page.tsx
++++ b/src/app/admin/orders/[id]/page.tsx
+@@ -146,8 +146,13 @@ export default async function AdminOrderDetailPage({
+                       </div>
+ 
+                       <div>
+-                        <p className="font-semibold text-slate-900">
++                        <p className="flex items-center gap-2 font-semibold text-slate-900">
+                           {item.product.name}
++                          {item.isBonus ? (
++                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
++                              Bonus
++                            </span>
++                          ) : null}
+                         </p>
+                         <p className="mt-2 text-sm text-slate-500">
+                           Harga satuan final: Rp{" "}
+diff --git a/src/app/admin/products/[id]/edit/page.tsx b/src/app/admin/products/[id]/edit/page.tsx
+index a5d4da0..b6c98a7 100644
+--- a/src/app/admin/products/[id]/edit/page.tsx
++++ b/src/app/admin/products/[id]/edit/page.tsx
+@@ -18,6 +18,9 @@ export default async function EditProductPage({
+       tierPrices: {
+         orderBy: { minQty: "asc" },
+       },
++      bonusRules: {
++        orderBy: { minQty: "asc" },
++      },
+     },
+   });
+ 
+@@ -61,6 +64,11 @@ export default async function EditProductPage({
+             price: Number(tier.price),
+             label: tier.label || "",
+           })),
++          bonusRules: product.bonusRules.map((rule) => ({
++            minQty: rule.minQty,
++            bonusProductId: rule.bonusProductId,
++            bonusQty: rule.bonusQty,
++          })),
+         }}
+       />
+     </div>
+diff --git a/src/app/admin/products/new/page.tsx b/src/app/admin/products/new/page.tsx
+index 3eeca54..a6a2d2f 100644
+--- a/src/app/admin/products/new/page.tsx
++++ b/src/app/admin/products/new/page.tsx
+@@ -32,6 +32,7 @@ export default function NewProductPage() {
+               label: "Retail",
+             },
+           ],
++          bonusRules: [],
+         }}
+       />
+     </div>
+diff --git a/src/app/api/admin/products/[id]/route.ts b/src/app/api/admin/products/[id]/route.ts
+index 13cff16..bdaa7b4 100644
+--- a/src/app/api/admin/products/[id]/route.ts
++++ b/src/app/api/admin/products/[id]/route.ts
+@@ -38,6 +38,14 @@ export async function GET(
+         tierPrices: {
+           orderBy: { minQty: "asc" },
+         },
++        bonusRules: {
++          orderBy: { minQty: "asc" },
++          include: {
++            bonusProduct: {
++              select: { id: true, name: true },
++            },
++          },
++        },
+       },
+     });
+ 
+@@ -88,6 +96,7 @@ export async function PUT(
+       include: {
+         medias: true,
+         tierPrices: true,
++        bonusRules: true,
+       },
+     });
+ 
+@@ -112,6 +121,7 @@ export async function PUT(
+       brand,
+       medias,
+       tierPrices,
++      bonusRules,
+     } = parsed.data;
+ 
+     if (readyStock > stock) {
+@@ -135,6 +145,34 @@ export async function PUT(
+       );
+     }
+ 
++    const selfReferencingBonus = bonusRules.find(
++      (rule) => rule.bonusProductId === id,
++    );
++
++    if (selfReferencingBonus) {
++      return NextResponse.json(
++        { message: "Produk bonus tidak boleh produk yang sama dengan produk ini" },
++        { status: 400 },
++      );
++    }
++
++    if (bonusRules.length > 0) {
++      const bonusProductIds = [
++        ...new Set(bonusRules.map((rule) => rule.bonusProductId)),
++      ];
++
++      const bonusProductsFound = await prisma.product.count({
++        where: { id: { in: bonusProductIds } },
++      });
++
++      if (bonusProductsFound !== bonusProductIds.length) {
++        return NextResponse.json(
++          { message: "Ada produk bonus yang tidak ditemukan" },
++          { status: 400 },
++        );
++      }
++    }
++
+     let slug = slugify(name);
+ 
+     const sameSlugUsed = await prisma.product.findFirst({
+@@ -194,6 +232,16 @@ export async function PUT(
+               label: tier.label || null,
+             })),
+         },
++        bonusRules: {
++          deleteMany: {},
++          create: bonusRules
++            .sort((a, b) => a.minQty - b.minQty)
++            .map((rule) => ({
++              minQty: rule.minQty,
++              bonusProductId: rule.bonusProductId,
++              bonusQty: rule.bonusQty,
++            })),
++        },
+       },
+       include: {
+         medias: {
+@@ -202,6 +250,14 @@ export async function PUT(
+         tierPrices: {
+           orderBy: { minQty: "asc" },
+         },
++        bonusRules: {
++          orderBy: { minQty: "asc" },
++          include: {
++            bonusProduct: {
++              select: { id: true, name: true },
++            },
++          },
++        },
+       },
+     });
+ 
+diff --git a/src/app/api/admin/products/route.ts b/src/app/api/admin/products/route.ts
+index 07c171e..7938d7f 100644
+--- a/src/app/api/admin/products/route.ts
++++ b/src/app/api/admin/products/route.ts
+@@ -78,6 +78,7 @@ export async function POST(req: Request) {
+       pcsPerBal,
+       medias,
+       tierPrices,
++      bonusRules,
+     } = parsed.data;
+ 
+     if (readyStock > stock) {
+@@ -87,6 +88,23 @@ export async function POST(req: Request) {
+       );
+     }
+ 
++    if (bonusRules.length > 0) {
++      const bonusProductIds = [
++        ...new Set(bonusRules.map((rule) => rule.bonusProductId)),
++      ];
++
++      const bonusProductsFound = await prisma.product.count({
++        where: { id: { in: bonusProductIds } },
++      });
++
++      if (bonusProductsFound !== bonusProductIds.length) {
++        return NextResponse.json(
++          { message: "Ada produk bonus yang tidak ditemukan" },
++          { status: 400 },
++        );
++      }
++    }
++
+     let slug = slugify(name);
+ 
+     const existingSlug = await prisma.product.findFirst({
+@@ -121,6 +139,15 @@ export async function POST(req: Request) {
+               label: tier.label || null,
+             })),
+         },
++        bonusRules: {
++          create: bonusRules
++            .sort((a, b) => a.minQty - b.minQty)
++            .map((rule) => ({
++              minQty: rule.minQty,
++              bonusProductId: rule.bonusProductId,
++              bonusQty: rule.bonusQty,
++            })),
++        },
+       },
+       include: {
+         medias: {
+@@ -129,6 +156,14 @@ export async function POST(req: Request) {
+         tierPrices: {
+           orderBy: { minQty: "asc" },
+         },
++        bonusRules: {
++          orderBy: { minQty: "asc" },
++          include: {
++            bonusProduct: {
++              select: { id: true, name: true },
++            },
++          },
++        },
+       },
+     });
+ 
+diff --git a/src/app/api/orders/create/route.ts b/src/app/api/orders/create/route.ts
+index 6fb422f..af46567 100644
+--- a/src/app/api/orders/create/route.ts
++++ b/src/app/api/orders/create/route.ts
+@@ -49,6 +49,12 @@ export async function POST(req: Request) {
+         tierPrices: {
+           orderBy: { minQty: "desc" },
+         },
++        bonusRules: {
++          orderBy: { minQty: "desc" },
++          include: {
++            bonusProduct: true,
++          },
++        },
+       },
+     });
+ 
+@@ -69,6 +75,8 @@ export async function POST(req: Request) {
+       readyQty: number;
+       poQty: number;
+       priceTierLabel: string;
++      isBonus: boolean;
++      bonusSourceProductId: string | null;
+     }[] = [];
+ 
+     let subtotal = 0;
+@@ -137,6 +145,44 @@ export async function POST(req: Request) {
+         readyQty: split.readyQty,
+         poQty: split.poQty,
+         priceTierLabel: discountLabel,
++        isBonus: false,
++        bonusSourceProductId: null,
++      });
++    }
++
++    // Tambahkan item bonus (gratis, diskon 100%) berdasarkan aturan bonus produk.
++    // Bonus tidak menambah subtotal/total dan tidak memotong stok produk bonus
++    // (readyQty & poQty diset 0 sehingga tidak ada pengurangan stok saat konfirmasi).
++    for (const inputItem of items) {
++      const product = products.find((p) => p.id === inputItem.productId);
++
++      if (!product || !product.bonusRules || product.bonusRules.length === 0) {
++        continue;
++      }
++
++      // Ambil rule dengan minQty tertinggi yang terpenuhi oleh quantity pesanan
++      const matchedBonusRule = product.bonusRules.find(
++        (rule) => inputItem.quantity >= rule.minQty,
++      );
++
++      if (!matchedBonusRule) {
++        continue;
++      }
++
++      const bonusUnitPrice = Number(matchedBonusRule.bonusProduct.price);
++
++      orderItemsData.push({
++        productId: matchedBonusRule.bonusProductId,
++        quantity: matchedBonusRule.bonusQty,
++        unitPrice: bonusUnitPrice,
++        subtotal: 0,
++        shippingCostPerItem: 0,
++        discountPercent: 1,
++        readyQty: 0,
++        poQty: 0,
++        priceTierLabel: `Bonus beli ${matchedBonusRule.minQty}+ pcs ${product.name}`,
++        isBonus: true,
++        bonusSourceProductId: product.id,
+       });
+     }
+ 
+diff --git a/src/app/status/[orderCode]/page.tsx b/src/app/status/[orderCode]/page.tsx
+index 47734ca..ca065e5 100644
+--- a/src/app/status/[orderCode]/page.tsx
++++ b/src/app/status/[orderCode]/page.tsx
+@@ -378,8 +378,13 @@ HIRONA HOMEWARE`
+                       </div>
+ 
+                       <div>
+-                        <p className="font-semibold text-slate-900">
++                        <p className="flex items-center gap-2 font-semibold text-slate-900">
+                           {item.product.name}
++                          {item.isBonus ? (
++                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
++                              Bonus
++                            </span>
++                          ) : null}
+                         </p>
+                         <div className="mt-3 space-y-1 text-sm text-slate-500">
+                           <p>
+diff --git a/src/components/order-preview-modal.tsx b/src/components/order-preview-modal.tsx
+index c83b7f8..b2c491b 100644
+--- a/src/components/order-preview-modal.tsx
++++ b/src/components/order-preview-modal.tsx
+@@ -19,6 +19,7 @@ type OrderPreviewItem = {
+   discountPercent?: number | string | null;
+   shippingCostPerItem?: number | string | null;
+   priceTierLabel?: string | null;
++  isBonus?: boolean;
+   product: {
+     name: string;
+     medias?: {
+@@ -375,8 +376,13 @@ export default function OrderPreviewModal({
+                               </div>
+ 
+                               <div>
+-                                <p className="font-semibold text-slate-900">
++                                <p className="flex items-center gap-2 font-semibold text-slate-900">
+                                   {item.product.name}
++                                  {item.isBonus ? (
++                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
++                                      Bonus
++                                    </span>
++                                  ) : null}
+                                 </p>
+                                 <p className="mt-2 text-sm text-slate-500">
+                                   Harga satuan: {formatCurrency(item.unitPrice)}
+diff --git a/src/components/product-form.tsx b/src/components/product-form.tsx
+index 9fba118..26070cf 100644
+--- a/src/components/product-form.tsx
++++ b/src/components/product-form.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useMemo, useState } from "react";
++import { useEffect, useMemo, useState } from "react";
+ import { useRouter } from "next/navigation";
+ import { UploadButton } from "@uploadthing/react";
+ 
+@@ -19,6 +19,12 @@ type TierPriceItem = {
+   label: string;
+ };
+ 
++type BonusRuleItem = {
++  minQty: string;
++  bonusProductId: string;
++  bonusQty: string;
++};
++
+ type ProductFormValues = {
+   name: string;
+   description: string;
+@@ -33,6 +39,7 @@ type ProductFormValues = {
+   isFeatured: boolean;
+   medias: MediaItem[];
+   tierPrices: TierPriceItem[];
++  bonusRules: BonusRuleItem[];
+ };
+ 
+ type Props = {
+@@ -56,6 +63,11 @@ type Props = {
+       price: number;
+       label: string;
+     }[];
++    bonusRules: {
++      minQty: number;
++      bonusProductId: string;
++      bonusQty: number;
++    }[];
+   };
+ };
+ 
+@@ -88,6 +100,11 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
+                 label: "",
+               },
+             ],
++      bonusRules: initialValues.bonusRules.map((rule) => ({
++        minQty: String(rule.minQty ?? ""),
++        bonusProductId: rule.bonusProductId,
++        bonusQty: String(rule.bonusQty ?? "1"),
++      })),
+     }),
+     [initialValues],
+   );
+@@ -98,6 +115,37 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
+   const [loading, setLoading] = useState(false);
+   const [uploading, setUploading] = useState(false);
+   const [error, setError] = useState("");
++  const [availableProducts, setAvailableProducts] = useState<
++    { id: string; name: string }[]
++  >([]);
++
++  useEffect(() => {
++    let active = true;
++
++    async function loadProducts() {
++      try {
++        const res = await fetch("/api/admin/products");
++        if (!res.ok) return;
++
++        const data = await res.json();
++        if (!active) return;
++
++        setAvailableProducts(
++          (data as { id: string; name: string }[])
++            .filter((product) => product.id !== productId)
++            .map((product) => ({ id: product.id, name: product.name })),
++        );
++      } catch (err) {
++        console.error(err);
++      }
++    }
++
++    loadProducts();
++
++    return () => {
++      active = false;
++    };
++  }, [productId]);
+ 
+   function updateField<K extends keyof ProductFormValues>(
+     key: K,
+@@ -140,6 +188,40 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
+     }));
+   }
+ 
++  function addBonusRule() {
++    setValues((prev) => ({
++      ...prev,
++      bonusRules: [
++        ...prev.bonusRules,
++        {
++          minQty: "",
++          bonusProductId: "",
++          bonusQty: "1",
++        },
++      ],
++    }));
++  }
++
++  function updateBonusRule<K extends keyof BonusRuleItem>(
++    index: number,
++    key: K,
++    value: BonusRuleItem[K],
++  ) {
++    setValues((prev) => ({
++      ...prev,
++      bonusRules: prev.bonusRules.map((rule, i) =>
++        i === index ? { ...rule, [key]: value } : rule,
++      ),
++    }));
++  }
++
++  function removeBonusRule(index: number) {
++    setValues((prev) => ({
++      ...prev,
++      bonusRules: prev.bonusRules.filter((_, i) => i !== index),
++    }));
++  }
++
+   function removeMedia(index: number) {
+     setValues((prev) => ({
+       ...prev,
+@@ -203,6 +285,21 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
+         return;
+       }
+ 
++      const invalidBonusRule = values.bonusRules.find(
++        (rule) =>
++          rule.minQty.trim() === "" ||
++          rule.bonusProductId.trim() === "" ||
++          rule.bonusQty.trim() === "" ||
++          Number(rule.minQty) < 1 ||
++          Number(rule.bonusQty) < 1,
++      );
++
++      if (invalidBonusRule) {
++        setError("Semua aturan bonus wajib diisi dengan benar (min qty, produk bonus, dan jumlah bonus)");
++        setLoading(false);
++        return;
++      }
++
+       const endpoint =
+         mode === "create"
+           ? "/api/admin/products"
+@@ -222,6 +319,11 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
+           minQty: Number(tier.minQty),
+           price: Number(tier.price),
+         })),
++        bonusRules: values.bonusRules.map((rule) => ({
++          minQty: Number(rule.minQty),
++          bonusProductId: rule.bonusProductId,
++          bonusQty: Number(rule.bonusQty),
++        })),
+       };
+ 
+       const res = await fetch(endpoint, {
+@@ -619,6 +721,114 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
+         </div>
+       </div>
+ 
++      <div>
++        <div className="mb-3 flex items-center justify-between">
++          <div>
++            <h3 className="text-lg font-semibold text-slate-900">
++              Bonus Pembelian
++            </h3>
++            <p className="mt-1 text-sm text-slate-500">
++              Contoh: pesan {">"}= 50 pcs produk ini, bonus 1 pcs sapu. Bonus
++              tidak dihitung ke total order (diskon 100%) dan tidak memotong
++              stok produk bonus.
++            </p>
++          </div>
++
++          <button
++            type="button"
++            onClick={addBonusRule}
++            className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
++          >
++            + Tambah Bonus
++          </button>
++        </div>
++
++        {values.bonusRules.length === 0 ? (
++          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
++            Belum ada aturan bonus untuk produk ini.
++          </div>
++        ) : (
++          <div className="space-y-4">
++            {values.bonusRules.map((rule, index) => (
++              <div
++                key={index}
++                className="grid gap-4 rounded-2xl border border-slate-200/70 bg-slate-50 p-4 lg:grid-cols-[140px_1fr_140px_100px]"
++              >
++                <div>
++                  <label className="mb-2 block text-xs font-medium text-slate-500">
++                    Min Qty Pesan
++                  </label>
++                  <input
++                    type="number"
++                    min={1}
++                    value={rule.minQty}
++                    onChange={(e) =>
++                      updateBonusRule(
++                        index,
++                        "minQty",
++                        onlyDigits(e.target.value),
++                      )
++                    }
++                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
++                    placeholder="cth: 50"
++                  />
++                </div>
++
++                <div>
++                  <label className="mb-2 block text-xs font-medium text-slate-500">
++                    Produk Bonus
++                  </label>
++                  <select
++                    value={rule.bonusProductId}
++                    onChange={(e) =>
++                      updateBonusRule(index, "bonusProductId", e.target.value)
++                    }
++                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
++                  >
++                    <option value="">Pilih produk bonus</option>
++                    {availableProducts.map((product) => (
++                      <option key={product.id} value={product.id}>
++                        {product.name}
++                      </option>
++                    ))}
++                  </select>
++                </div>
++
++                <div>
++                  <label className="mb-2 block text-xs font-medium text-slate-500">
++                    Jumlah Bonus
++                  </label>
++                  <input
++                    type="number"
++                    min={1}
++                    value={rule.bonusQty}
++                    onChange={(e) =>
++                      updateBonusRule(
++                        index,
++                        "bonusQty",
++                        onlyDigits(e.target.value),
++                      )
++                    }
++                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-500"
++                    placeholder="cth: 1"
++                  />
++                </div>
++
++                <div className="flex items-end">
++                  <button
++                    type="button"
++                    onClick={() => removeBonusRule(index)}
++                    className="w-full rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100"
++                  >
++                    Hapus
++                  </button>
++                </div>
++              </div>
++            ))}
++          </div>
++        )}
++      </div>
++
+       {error ? (
+         <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+           {error}
+diff --git a/src/lib/dashboard-cache.ts b/src/lib/dashboard-cache.ts
+index 1f125ff..f3656ae 100644
+--- a/src/lib/dashboard-cache.ts
++++ b/src/lib/dashboard-cache.ts
+@@ -12,6 +12,7 @@ export async function getAdminDashboardSummary() {
+     confirmedRevenue: number;
+     confirmedOrders: number;
+     rejectedOrders: number;
++    shippedOrders: number;
+     waitingOrders: number;
+     pendingOrders: number;
+     paymentMethodRaw: {
+@@ -31,6 +32,7 @@ export async function getAdminDashboardSummary() {
+     confirmedRevenue,
+     confirmedOrders,
+     rejectedOrders,
++    shippedOrders,
+     waitingOrders,
+     pendingOrders,
+     paymentMethodRaw,
+@@ -61,6 +63,9 @@ export async function getAdminDashboardSummary() {
+     prisma.order.count({
+       where: { status: "REJECTED" },
+     }),
++    prisma.order.count({
++      where: { status: "SHIPPED" },
++    }),
+     prisma.order.count({
+       where: { status: "WAITING_CONFIRMATION" },
+     }),
+@@ -86,6 +91,7 @@ export async function getAdminDashboardSummary() {
+     confirmedRevenue: Number(confirmedRevenue._sum.total || 0),
+     confirmedOrders,
+     rejectedOrders,
++    shippedOrders,
+     waitingOrders,
+     pendingOrders,
+     paymentMethodRaw: paymentMethodRaw.map((item) => ({
+diff --git a/src/lib/product-schema.ts b/src/lib/product-schema.ts
+index 2775fa1..b8fe4da 100644
+--- a/src/lib/product-schema.ts
++++ b/src/lib/product-schema.ts
+@@ -13,6 +13,12 @@ const tierPriceSchema = z.object({
+     label: z.string().optional().nullable(),
+ });
+ 
++const bonusRuleSchema = z.object({
++    minQty: z.coerce.number().int().min(1, "Min qty bonus minimal 1"),
++    bonusProductId: z.string().min(1, "Produk bonus wajib dipilih"),
++    bonusQty: z.coerce.number().int().min(1, "Jumlah bonus minimal 1"),
++});
++
+ export const createProductSchema = z.object({
+     name: z.string().min(2, "Nama produk minimal 2 karakter"),
+     description: z.string().min(5, "Deskripsi minimal 5 karakter"),
+@@ -25,6 +31,7 @@ export const createProductSchema = z.object({
+     brand: z.string().optional().default(""),
+     medias: z.array(mediaSchema).min(1, "Minimal 1 media"),
+     tierPrices: z.array(tierPriceSchema).min(1, "Minimal 1 tier harga"),
++    bonusRules: z.array(bonusRuleSchema).default([]),
+ });
+ 
+ export const updateProductSchema = z.object({
+@@ -43,4 +50,5 @@ export const updateProductSchema = z.object({
+ 
+     medias: z.array(mediaSchema).min(1, "Minimal 1 media produk"),
+     tierPrices: z.array(tierPriceSchema).default([]),
++    bonusRules: z.array(bonusRuleSchema).default([]),
+ });

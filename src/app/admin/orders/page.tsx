@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPageParams } from "@/lib/pagination";
 import OrderPreviewModal from "@/components/order-preview-modal";
+import OrderShippingButtons from "@/components/order-shipping-buttons";
 
 function formatPaymentMethod(method: string) {
   if (method === "TRANSFER") return "Transfer";
@@ -15,6 +16,10 @@ function formatDate(value: Date) {
 }
 
 function getStatusBadgeClass(status: string) {
+  if (status === "SHIPPED") {
+    return "bg-indigo-50 text-indigo-700 border border-indigo-200";
+  }
+
   if (status === "CONFIRMED" || status === "INVOICE_SENT") {
     return "bg-emerald-50 text-emerald-700 border border-emerald-200";
   }
@@ -37,7 +42,40 @@ function formatStatus(status: string) {
   if (status === "REJECTED") return "Ditolak";
   if (status === "CANCELLED") return "Dibatalkan";
   if (status === "INVOICE_SENT") return "Invoice Terkirim";
+  if (status === "SHIPPED") return "Dikirim";
   return status;
+}
+
+
+// Konversi semua field Decimal dan Date ke plain value agar bisa dikirim ke Client Component
+function serializeOrder(order: any) {
+  return {
+    ...order,
+    adjustmentValue: order.adjustmentValue.toString(),
+    shippingCost: order.shippingCost.toString(),
+    subtotal: order.subtotal.toString(),
+    total: order.total.toString(),
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+    confirmedAt: order.confirmedAt?.toISOString() ?? null,
+    rejectedAt: order.rejectedAt?.toISOString() ?? null,
+    invoiceSentAt: order.invoiceSentAt?.toISOString() ?? null,
+    shippedAt: order.shippedAt ? order.shippedAt.toISOString() : null,
+    items: order.items.map((item: any) => ({
+      ...item,
+      unitPrice: item.unitPrice.toString(),
+      subtotal: item.subtotal.toString(),
+      discountPercent: item.discountPercent.toString(),
+      shippingCostPerItem: item.shippingCostPerItem.toString(),
+	  
+	  product: item.product ? {
+        ...item.product,
+        price: item.product.price.toString(),
+        shippingFee: item.product.shippingFee ? item.product.shippingFee.toString() : "0",
+      } : null,
+	  
+    })),
+  };
 }
 
 export default async function OrdersPage({
@@ -53,6 +91,7 @@ export default async function OrdersPage({
     hasPo?: string;
     dateFrom?: string;
     dateTo?: string;
+    shippingStatus?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -64,6 +103,7 @@ export default async function OrdersPage({
   const hasPo = params.hasPo?.trim() || "";
   const dateFrom = params.dateFrom?.trim() || "";
   const dateTo = params.dateTo?.trim() || "";
+  const shippingStatus = params.shippingStatus?.trim() || "";
 
   const { page, limit, skip } = getPageParams(params);
 
@@ -115,6 +155,15 @@ export default async function OrdersPage({
           },
         }
       : {}),
+    ...(shippingStatus === "shipped"
+      ? { status: "SHIPPED" as const }
+      : shippingStatus === "not_shipped"
+        ? {
+            status: {
+              in: ["CONFIRMED", "INVOICE_SENT"] as const,
+            },
+          }
+        : {}),
   };
 
   const [orders, total, salesList] = await Promise.all([
@@ -173,6 +222,7 @@ export default async function OrdersPage({
     hasPo,
     dateFrom,
     dateTo,
+    shippingStatus,
     limit: String(limit),
   });
 
@@ -216,6 +266,7 @@ export default async function OrdersPage({
             <option value="REJECTED">Ditolak</option>
             <option value="CANCELLED">Dibatalkan</option>
             <option value="INVOICE_SENT">Faktur Terkirim</option>
+            <option value="SHIPPED">Dikirim</option>
           </select>
 
           <select
@@ -263,6 +314,16 @@ export default async function OrdersPage({
           >
             <option value="">Semua Pesanan</option>
             <option value="true">Hanya yang ada PO</option>
+          </select>
+
+          <select
+            name="shippingStatus"
+            defaultValue={shippingStatus}
+            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-500"
+          >
+            <option value="">Semua Status Pengiriman</option>
+            <option value="shipped">Sudah Dikirim</option>
+            <option value="not_shipped">Belum Dikirim</option>
           </select>
 
           <button
@@ -375,13 +436,13 @@ export default async function OrdersPage({
 
                       <div className="mt-4 flex flex-wrap gap-2">
                         <OrderPreviewModal
-                          order={order as any}
+                          order={serializeOrder(order)}
                           triggerLabel="Detail"
                           defaultTab="detail"
                         />
 
                         <OrderPreviewModal
-                          order={order as any}
+                          order={serializeOrder(order)}
                           triggerLabel="Status"
                           defaultTab="status"
                         />
@@ -405,6 +466,12 @@ export default async function OrdersPage({
                             Invoice PDF
                           </a>
                         ) : null}
+
+                        <OrderShippingButtons
+                          orderId={order.id}
+                          orderCode={order.orderCode}
+                          status={order.status}
+                        />
                       </div>
                     </div>
                   );
@@ -511,13 +578,13 @@ export default async function OrdersPage({
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-2">
                             <OrderPreviewModal
-                              order={order as any}
+                              order={serializeOrder(order)}
                               triggerLabel="Detail"
                               defaultTab="detail"
                             />
 
                             <OrderPreviewModal
-                              order={order as any}
+                              order={serializeOrder(order)}
                               triggerLabel="Status"
                               defaultTab="status"
                             />
@@ -541,6 +608,12 @@ export default async function OrdersPage({
                                 Invoice PDF
                               </a>
                             ) : null}
+
+                            <OrderShippingButtons
+                              orderId={order.id}
+                              orderCode={order.orderCode}
+                              status={order.status}
+                            />
                           </div>
                         </td>
                       </tr>

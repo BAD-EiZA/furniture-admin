@@ -32,6 +32,7 @@ export default function NewProductPage() {
               label: "Retail",
             },
           ],
+          bonusRules: [],
         }}
       />
     </div>
