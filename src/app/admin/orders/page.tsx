@@ -168,7 +168,7 @@ export default async function OrdersPage({
 
   const [orders, total, salesList] = await Promise.all([
     prisma.order.findMany({
-      where,
+      where: where as any,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
@@ -196,7 +196,7 @@ export default async function OrdersPage({
         paymentProof: true,
       },
     }),
-    prisma.order.count({ where }),
+    prisma.order.count({ where: where as any }),
     prisma.user.findMany({
       where: {
         role: "SALES",
