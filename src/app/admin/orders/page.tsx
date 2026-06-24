@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPageParams } from "@/lib/pagination";
 import OrderPreviewModal from "@/components/order-preview-modal";
 import OrderShippingButtons from "@/components/order-shipping-buttons";
+import SalesOrderActionButtons from "@/components/sales-order-action-buttons";
 
 function formatPaymentMethod(method: string) {
   if (method === "TRANSFER") return "Transfer";
@@ -472,6 +473,13 @@ export default async function OrdersPage({
                           orderCode={order.orderCode}
                           status={order.status}
                         />
+
+                        <SalesOrderActionButtons
+                          orderId={order.id}
+                          orderCode={order.orderCode}
+                          status={order.status}
+                          hasInvoice={Boolean(order.invoice)}
+                        />
                       </div>
                     </div>
                   );
@@ -613,6 +621,13 @@ export default async function OrdersPage({
                               orderId={order.id}
                               orderCode={order.orderCode}
                               status={order.status}
+                            />
+
+                            <SalesOrderActionButtons
+                              orderId={order.id}
+                              orderCode={order.orderCode}
+                              status={order.status}
+                              hasInvoice={Boolean(order.invoice)}
                             />
                           </div>
                         </td>
