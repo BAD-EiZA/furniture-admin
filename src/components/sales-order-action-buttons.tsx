@@ -69,7 +69,8 @@ export default function SalesOrderActionButtons({
     }
   }
 
-  const isWaiting = status === "WAITING_CONFIRMATION";
+  const isWaiting =
+    status === "WAITING_CONFIRMATION" || status === "PENDING_PAYMENT";
   const isConfirmed = status === "CONFIRMED";
   const isInvoiceSent = status === "INVOICE_SENT";
 

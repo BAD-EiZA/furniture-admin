@@ -39,8 +39,9 @@ export default async function AdminDashboardPage() {
       hint: "Semua transaksi masuk",
       iconClass: "bg-[#eef2ff] text-[#2E4FAE]",
       breakdown: [
-        { label: "Ditolak", value: dashboardSummary.rejectedOrders },
+        { label: "Dibatalkan", value: dashboardSummary.rejectedOrders },
         { label: "Dikirim", value: dashboardSummary.shippedOrders },
+		{ label: "Belum Dikirim", value: dashboardSummary.confirmedOrders },
       ],
     },
     {
