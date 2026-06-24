@@ -131,9 +131,10 @@ export default function ProductForm({ mode, productId, initialValues }: Props) {
         if (!active) return;
 
         setAvailableProducts(
-          (data as { id: string; name: string }[])
-            .filter((product) => product.id !== productId)
-            .map((product) => ({ id: product.id, name: product.name })),
+          (data as { id: string; name: string }[]).map((product) => ({
+            id: product.id,
+            name: product.name,
+          })),
         );
       } catch (err) {
         console.error(err);

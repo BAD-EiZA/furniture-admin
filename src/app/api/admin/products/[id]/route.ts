@@ -145,17 +145,6 @@ export async function PUT(
       );
     }
 
-    const selfReferencingBonus = bonusRules.find(
-      (rule) => rule.bonusProductId === id,
-    );
-
-    if (selfReferencingBonus) {
-      return NextResponse.json(
-        { message: "Produk bonus tidak boleh produk yang sama dengan produk ini" },
-        { status: 400 },
-      );
-    }
-
     if (bonusRules.length > 0) {
       const bonusProductIds = [
         ...new Set(bonusRules.map((rule) => rule.bonusProductId)),
