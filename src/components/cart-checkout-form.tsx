@@ -35,6 +35,14 @@ type ProductSummary = {
     price: number;
     label: string | null;
   }[];
+  bonusRules: {
+    minQty: number;
+    bonusQty: number;
+    bonusProduct: {
+      id: string;
+      name: string;
+    };
+  }[];
 };
 
 type PaymentProofState = {
@@ -91,6 +99,54 @@ function getAppliedTier(product: ProductSummary | undefined, quantity: number) {
     unitPrice: Number(product.price),
     label: "Retail",
     minQty: 1,
+  };
+}
+
+function getAppliedBonus(product: ProductSummary | undefined, quantity: number) {
+  if (!product || !product.bonusRules || product.bonusRules.length === 0) {
+    return null;
+  }
+
+  const sortedRules = [...product.bonusRules].sort(
+    (a, b) => b.minQty - a.minQty,
+  );
+
+  const matchedRule = sortedRules.find((rule) => quantity >= rule.minQty);
+
+  if (!matchedRule) {
+    return null;
+  }
+
+  return {
+    minQty: matchedRule.minQty,
+    bonusQty: matchedRule.bonusQty,
+    bonusProductName: matchedRule.bonusProduct.name,
+  };
+}
+
+function getNextBonusMilestone(
+  product: ProductSummary | undefined,
+  quantity: number,
+) {
+  if (!product || !product.bonusRules || product.bonusRules.length === 0) {
+    return null;
+  }
+
+  const sortedRules = [...product.bonusRules].sort(
+    (a, b) => a.minQty - b.minQty,
+  );
+
+  const nextRule = sortedRules.find((rule) => quantity < rule.minQty);
+
+  if (!nextRule) {
+    return null;
+  }
+
+  return {
+    minQty: nextRule.minQty,
+    bonusQty: nextRule.bonusQty,
+    bonusProductName: nextRule.bonusProduct.name,
+    shortBy: nextRule.minQty - quantity,
   };
 }
 
@@ -225,6 +281,11 @@ export default function CartCheckoutForm({
       const subtotal = (finalUnitPrice + shippingPerItem) * cartItem.quantity;
       const discountPerPcs = Math.max(0, normalUnitPrice - finalUnitPrice);
 
+      const appliedBonus = getAppliedBonus(product, cartItem.quantity);
+      const nextBonusMilestone = appliedBonus
+        ? null
+        : getNextBonusMilestone(product, cartItem.quantity);
+
       return {
         ...cartItem,
         product,
@@ -237,6 +298,8 @@ export default function CartCheckoutForm({
         readyQty,
         poQty,
         subtotal,
+        appliedBonus,
+        nextBonusMilestone,
       };
     });
   }, [items, products, deliveryAreaType]);
@@ -573,6 +636,19 @@ export default function CartCheckoutForm({
                       <p className="text-sm text-slate-500">
                         Ready stock: {item.product?.readyStock ?? "-"}
                       </p>
+
+                      {item.appliedBonus ? (
+                        <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                          🎁 Bonus {item.appliedBonus.bonusQty} pcs{" "}
+                          {item.appliedBonus.bonusProductName}
+                        </p>
+                      ) : item.nextBonusMilestone ? (
+                        <p className="mt-2 text-xs text-[#C89B3C]">
+                          Tambah {item.nextBonusMilestone.shortBy} pcs lagi untuk
+                          dapat bonus {item.nextBonusMilestone.bonusQty} pcs{" "}
+                          {item.nextBonusMilestone.bonusProductName}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 

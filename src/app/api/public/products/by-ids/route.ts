@@ -27,6 +27,14 @@ export async function GET(req: NextRequest) {
         tierPrices: {
           orderBy: { minQty: "asc" },
         },
+        bonusRules: {
+          orderBy: { minQty: "asc" },
+          include: {
+            bonusProduct: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
 
