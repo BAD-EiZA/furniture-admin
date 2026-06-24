@@ -12,6 +12,7 @@ import {
 import { getProductDetailBySlug } from "@/lib/product-cache";
 import { prisma } from "@/lib/prisma";
 import AddToCartButton from "@/components/add-to-cart-button";
+import ProductImageGallery from "@/components/product-image-gallery";
 import CartBadge from "@/components/cart-badge";
 
 export default async function ProductDetailPage({
@@ -44,10 +45,6 @@ export default async function ProductDetailPage({
     },
   });
 
-  const primaryImage =
-    product.medias.find((media: any) => media.type === "IMAGE") ||
-    product.medias[0];
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(18,94,169,0.12),_transparent_28%),linear-gradient(to_bottom,_#f8fbff,_#eef5ff)]">
       <section className="border-b border-slate-200/70 bg-white/75 backdrop-blur-xl">
@@ -73,54 +70,10 @@ export default async function ProductDetailPage({
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.95fr]">
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-[32px] border border-slate-200/70 bg-white shadow-sm">
-              <div className="aspect-[4/3] bg-slate-100">
-                {primaryImage?.type === "IMAGE" ? (
-                  <img
-                    src={primaryImage.fileUrl}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : primaryImage?.type === "VIDEO" ? (
-                  <video
-                    src={primaryImage.fileUrl}
-                    controls
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                    No media
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {product.medias.length > 1 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {product.medias.map((media: any) => (
-                  <div
-                    key={media.id}
-                    className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
-                  >
-                    <div className="aspect-[4/3] bg-slate-100">
-                      {media.type === "IMAGE" ? (
-                        <img
-                          src={media.fileUrl}
-                          alt={product.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <video
-                          src={media.fileUrl}
-                          controls
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <ProductImageGallery
+              medias={product.medias}
+              productName={product.name}
+            />
           </div>
 
           <div>
