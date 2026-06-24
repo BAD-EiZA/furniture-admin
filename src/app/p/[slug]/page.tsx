@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BadgeDollarSign,
+  Gift,
   MapPin,
   PackageCheck,
   ShieldCheck,
@@ -103,6 +104,33 @@ export default async function ProductDetailPage({
                   Rp {Number(product.price).toLocaleString("id-ID")}
                 </p>
               </div>
+
+              {product.bonusRules?.length > 0 ? (
+                <div className="mt-6 space-y-3">
+                  {product.bonusRules.map(
+                    (rule: {
+                      id: string;
+                      minQty: number;
+                      bonusQty: number;
+                      bonusProduct: { name: string };
+                    }) => (
+                      <div
+						  key={rule.id}
+						  className="flex items-center gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50 p-4"
+						>
+						  <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
+							<Gift className="h-4 w-4" />
+						  </div>
+						  {/* Perubahan pada font-bold dan text-red-700 */}
+						  <p className="text-sm font-bold text-red-700">
+							PROMO pembelian {rule.minQty} Pcs, Bonus {rule.bonusQty} Pcs{" "}
+							{rule.bonusProduct?.name}
+						  </p>
+						</div>
+                    ),
+                  )}
+                </div>
+              ) : null}
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200/70 bg-slate-50 p-4">
